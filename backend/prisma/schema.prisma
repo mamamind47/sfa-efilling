@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model submission_status {
+  status_id        Int      @id @default(autoincrement())
+  user_id          Int      @unique
+  academic_year_id Int
+  is_marked        Boolean  @default(false) // ✅ ทำเครื่องหมายแล้วหรือยัง
+  status           String   @default("pending") // ✅ "pending" หรือ "approved"
+  created_at       DateTime @default(now())
+
+  user          users          @relation(fields: [user_id], references: [user_id])
+  academic_year academic_years @relation(fields: [academic_year_id], references: [academic_year_id])
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model academic_years {
+  academic_year_id  Int                    @id @default(autoincrement())
+  year_name         String                 @db.VarChar(10)
+  start_date        DateTime               @db.Date
+  end_date          DateTime               @db.Date
+  status            academic_years_status?
+  created_at        DateTime               @default(now()) @db.DateTime(0)
+  updated_at        DateTime               @default(now()) @db.DateTime(0)
+  submissions       submissions[]
+  submission_status submission_status[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model certificate_types {
+  certificate_type_id Int      @id @default(autoincrement())
+  certificate_code    String   @unique @db.VarChar(50)
+  certificate_name    String   @db.VarChar(100)
+  hours               Int
+  is_active           Int      @default(1) @db.TinyInt
+  created_at          DateTime @default(now()) @db.DateTime(0)
+  updated_at          DateTime @default(now()) @db.DateTime(0)
+
+  submission_details submission_details[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model submission_details {
+  submission_detail_id Int                       @id @default(autoincrement())
+  submission_id        Int
+  certificate_type_id  Int
+  file_path            String                    @db.VarChar(255)
+  status               submission_details_status @default(pending)
+  rejection_reason     String?                   @db.VarChar(255)
+  created_at           DateTime                  @default(now()) @db.DateTime(0)
+  updated_at           DateTime                  @default(now()) @db.DateTime(0)
+  certificate_types    certificate_types         @relation(fields: [certificate_type_id], references: [certificate_type_id], onDelete: Cascade, map: "fk_submission_details_certificate_type_id")
+  submissions          submissions               @relation(fields: [submission_id], references: [submission_id], onDelete: Cascade, map: "fk_submission_details_submission_id")
+
+  @@index([certificate_type_id], map: "fk_submission_details_certificate_type_id")
+  @@index([submission_id], map: "fk_submission_details_submission_id")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model submissions {
+  submission_id      Int                  @id @default(autoincrement())
+  user_id            Int
+  academic_year_id   Int
+  status             submissions_status   @default(draft)
+  rejection_reason   String?              @db.VarChar(255)
+  created_at         DateTime             @default(now()) @db.DateTime(0)
+  updated_at         DateTime             @default(now()) @db.DateTime(0)
+  submission_details submission_details[]
+  academic_years     academic_years       @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade, map: "fk_submissions_academic_year_id")
+  users              users                @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "fk_submissions_user_id")
+
+  @@index([academic_year_id], map: "fk_submissions_academic_year_id")
+  @@index([user_id], map: "fk_submissions_user_id")
+}
+
+model users {
+  user_id           Int                @id @default(autoincrement())
+  username          String             @unique @db.VarChar(50)
+  password          String             @db.VarChar(255)
+  role              users_role         @default(student)
+  created_at        DateTime           @default(now()) @db.DateTime(0)
+  updated_at        DateTime           @default(now()) @db.DateTime(0)
+  submissions       submissions[]
+  submission_status submission_status?
+}
+
+enum submissions_status {
+  draft
+  submitted
+  approved
+  rejected
+}
+
+enum users_role {
+  admin
+  student
+}
+
+enum academic_years_status {
+  OPEN
+  CLOSED
+  null
+}
+
+enum submission_details_status {
+  pending
+  approved
+  rejected
+}
