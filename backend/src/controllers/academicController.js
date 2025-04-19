@@ -2,15 +2,40 @@ const prisma = require("../config/database");
 
 // ✅ ดึงปีการศึกษาทั้งหมด
 exports.getAllAcademicYears = async (req, res) => {
+  const userRole = req.user.role; 
   try {
-    const academicYears = await prisma.academic_years.findMany({
-      orderBy: { year_name: "desc" },
-    });
+    let academicYears;
+
+    if (userRole === "admin") {
+      academicYears = await prisma.academic_years.findMany({
+        orderBy: { year_name: "desc" },
+      });
+    } else {
+      const now = new Date();
+      academicYears = await prisma.academic_years.findMany({
+        where: {
+          OR: [
+            { status: "OPEN" },
+            // ถ้า status เป็น null (ตามเวลา) ต้องอยู่ในช่วง start_date และ end_date
+            {
+              status: null,
+              start_date: { lte: now }, // วันเริ่มต้น <= วันนี้
+              end_date: { gte: now }, // วันสิ้นสุด >= วันนี้
+            },
+          ],
+        },
+        orderBy: { year_name: "desc" }, // อาจจะเรียงตามปีล่าสุดเหมือน Admin
+      });
+    }
+
     res.json(academicYears);
-  } catch (error) {
+  } 
+  catch (error) {
+    console.error("❌ Error fetching academic years:", error);
     res.status(500).json({ error: "Failed to fetch academic years" });
   }
 };
+
 
 // ✅ สร้างปีการศึกษาใหม่ (Admin)
 exports.createAcademicYear = async (req, res) => {
@@ -40,7 +65,7 @@ exports.updateAcademicYear = async (req, res) => {
 
   try {
     const updatedYear = await prisma.academic_years.update({
-      where: { academic_year_id: parseInt(academic_year_id) },
+      where: { academic_year_id: academic_year_id },
       data: {
         year_name,
         start_date: new Date(start_date),
@@ -71,7 +96,7 @@ exports.toggleAcademicYearStatus = async (req, res) => {
 
   try {
     const updatedYear = await prisma.academic_years.update({
-      where: { academic_year_id: parseInt(academic_year_id) },
+      where: { academic_year_id: academic_year_id },
       data: { status },
     });
 
@@ -84,4 +109,3 @@ exports.toggleAcademicYearStatus = async (req, res) => {
     res.status(500).json({ error: "Failed to update academic year status" });
   }
 };
-

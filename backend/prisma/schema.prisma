@@ -7,91 +7,104 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model submission_status {
-  status_id        Int      @id @default(autoincrement())
-  user_id          Int      @unique
-  academic_year_id Int
-  is_marked        Boolean  @default(false) // ✅ ทำเครื่องหมายแล้วหรือยัง
-  status           String   @default("pending") // ✅ "pending" หรือ "approved"
-  created_at       DateTime @default(now())
-
-  user          users          @relation(fields: [user_id], references: [user_id])
-  academic_year academic_years @relation(fields: [academic_year_id], references: [academic_year_id])
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model academic_years {
-  academic_year_id  Int                    @id @default(autoincrement())
-  year_name         String                 @db.VarChar(10)
-  start_date        DateTime               @db.Date
-  end_date          DateTime               @db.Date
+  academic_year_id  String         @id @default(uuid()) @db.Char(36)
+  year_name         String         @db.VarChar(10)
+  start_date        DateTime       @db.Date
+  end_date          DateTime       @db.Date
   status            academic_years_status?
-  created_at        DateTime               @default(now()) @db.DateTime(0)
-  updated_at        DateTime               @default(now()) @db.DateTime(0)
+  created_at        DateTime       @default(now()) @db.DateTime(0)
+  updated_at        DateTime       @default(now()) @db.DateTime(0)
+
   submissions       submissions[]
-  submission_status submission_status[]
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model certificate_types {
-  certificate_type_id Int      @id @default(autoincrement())
-  certificate_code    String   @unique @db.VarChar(50)
-  certificate_name    String   @db.VarChar(100)
-  hours               Int
-  is_active           Int      @default(1) @db.TinyInt
-  created_at          DateTime @default(now()) @db.DateTime(0)
-  updated_at          DateTime @default(now()) @db.DateTime(0)
+model linked_volunteer {
+  id         String   @id @default(uuid()) @db.Char(36)
+  user_id    String   @db.VarChar(50)
+  year       String   @db.VarChar(10)
+  hours      Int
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 
-  submission_details submission_details[]
+  @@unique([user_id, year], map: "user_id_year_unique")
 }
 
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
-model submission_details {
-  submission_detail_id Int                       @id @default(autoincrement())
-  submission_id        Int
-  certificate_type_id  Int
-  file_path            String                    @db.VarChar(255)
-  status               submission_details_status @default(pending)
-  rejection_reason     String?                   @db.VarChar(255)
-  created_at           DateTime                  @default(now()) @db.DateTime(0)
-  updated_at           DateTime                  @default(now()) @db.DateTime(0)
-  certificate_types    certificate_types         @relation(fields: [certificate_type_id], references: [certificate_type_id], onDelete: Cascade, map: "fk_submission_details_certificate_type_id")
-  submissions          submissions               @relation(fields: [submission_id], references: [submission_id], onDelete: Cascade, map: "fk_submission_details_submission_id")
-
-  @@index([certificate_type_id], map: "fk_submission_details_certificate_type_id")
-  @@index([submission_id], map: "fk_submission_details_submission_id")
-}
-
-/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model submissions {
-  submission_id      Int                  @id @default(autoincrement())
-  user_id            Int
-  academic_year_id   Int
-  status             submissions_status   @default(draft)
-  rejection_reason   String?              @db.VarChar(255)
-  created_at         DateTime             @default(now()) @db.DateTime(0)
-  updated_at         DateTime             @default(now()) @db.DateTime(0)
-  submission_details submission_details[]
-  academic_years     academic_years       @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade, map: "fk_submissions_academic_year_id")
-  users              users                @relation(fields: [user_id], references: [user_id], onDelete: Cascade, map: "fk_submissions_user_id")
+  submission_id        String              @id @default(uuid()) @db.Char(36)
+  user_id              String              @db.Char(36)
+  academic_year_id     String              @db.Char(36)
+  type                 String              @db.VarChar(50)
+  status               submissions_status  @default(submitted)
+  rejection_reason     String?             @db.VarChar(255)
+  submission_files  submission_files[]
+  hours                Int?
+  certificate_type_id  String?             @db.Char(36)
+  created_at           DateTime            @default(now()) @db.DateTime(0)
+  updated_at           DateTime            @default(now()) @db.DateTime(0)
 
-  @@index([academic_year_id], map: "fk_submissions_academic_year_id")
-  @@index([user_id], map: "fk_submissions_user_id")
+  academic_years       academic_years      @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade)
+  users                users               @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+  certificate_type     certificate_types?  @relation(fields: [certificate_type_id], references: [certificate_type_id])
+  status_logs          submission_status_logs[]
+
+  @@index([academic_year_id])
+  @@index([user_id])
+  @@index([type])
+}
+
+model submission_files {
+  id             String  @id @default(uuid())
+  submission_id  String
+  file_path      String  // path ของไฟล์ที่แนบ
+  created_at     DateTime @default(now())
+
+  submission     submissions @relation(fields: [submission_id], references: [submission_id], onDelete: Cascade)
+}
+
+model certificate_types {
+  certificate_type_id String           @id @default(uuid()) @db.Char(36)
+  certificate_code    String           @unique @db.VarChar(50)
+  certificate_name    String           @db.VarChar(100)
+  hours               Int
+  category            String?
+  is_active           Int              @default(1) @db.TinyInt
+  created_at          DateTime         @default(now()) @db.DateTime(0)
+  updated_at          DateTime         @updatedAt @db.DateTime(0)
+
+  submissions         submissions[]
 }
 
 model users {
-  user_id           Int                @id @default(autoincrement())
-  username          String             @unique @db.VarChar(50)
-  password          String             @db.VarChar(255)
-  role              users_role         @default(student)
-  created_at        DateTime           @default(now()) @db.DateTime(0)
-  updated_at        DateTime           @default(now()) @db.DateTime(0)
-  submissions       submissions[]
-  submission_status submission_status?
+  user_id      String                    @id @default(uuid()) @db.Char(36)
+  username     String                    @unique @db.VarChar(50)
+  name         String                    @db.VarChar(100)
+  faculty      String?                   @db.VarChar(100)
+  major        String?                   @db.VarChar(100)
+  email        String                    @unique @db.VarChar(100)
+  phone        String?                   @db.VarChar(15)
+  role         users_role                @default(student)
+  refreshToken String?                   @db.Text
+  created_at   DateTime                  @default(now()) @db.DateTime(0)
+  updated_at   DateTime                  @default(now()) @db.DateTime(0)
+
+  submissions  submissions[]
+  status_logs  submission_status_logs[]  @relation("StatusChanger")
+}
+
+model submission_status_logs {
+  log_id         String             @id @default(uuid()) @db.Char(36)
+  submission_id  String             @db.Char(36)
+  status         submissions_status
+  reason         String?            @db.VarChar(255)
+  changed_by     String             @db.Char(36)
+  changed_at     DateTime           @default(now()) @db.DateTime(0)
+
+  submission     submissions        @relation(fields: [submission_id], references: [submission_id])
+  changed_by_user users             @relation("StatusChanger", fields: [changed_by], references: [user_id])
 }
 
 enum submissions_status {
-  draft
   submitted
   approved
   rejected
@@ -106,10 +119,4 @@ enum academic_years_status {
   OPEN
   CLOSED
   null
-}
-
-enum submission_details_status {
-  pending
-  approved
-  rejected
 }

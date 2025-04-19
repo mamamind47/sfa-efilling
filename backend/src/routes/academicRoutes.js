@@ -8,16 +8,17 @@ const {
 
 const router = express.Router();
 
-// ✅ ดึงปีการศึกษาทั้งหมด
+// ดึงปีการศึกษาทั้งหมด
 router.get("/", getAllAcademicYears);
 
-// ✅ สร้างปีการศึกษาใหม่ (Admin)
+// สร้างปีการศึกษาใหม่ (Admin)
 router.post("/", createAcademicYear);
 
-// ✅ แก้ไขปีการศึกษา (Admin)
+// แก้ไขปีการศึกษา (Admin)
 router.put("/:academic_year_id", updateAcademicYear);
 
-// ✅ ปิด/เปิดปีการศึกษา (Admin)
+// ปิด/เปิดปีการศึกษา (Admin)
 router.put("/:academic_year_id/status", toggleAcademicYearStatus);
+
 
 module.exports = router;

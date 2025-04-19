@@ -1,268 +1,238 @@
 const prisma = require("../config/database");
+const path = require("path");
 
-// ✅ ยื่นใบรับรอง (User)
-exports.submitCertificate = async (req, res) => {
-  const { user_id, academic_year_id, certificate_type_id, username } = req.body;
+// ✅ ยื่น Submission
+exports.submitSubmission = async (req, res) => {
+  const { academic_year_id, type, certificate_type_id, hours } = req.body;
+  const files = req.files;
+  const user_id = req.user.id;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: "No files uploaded." });
+  }
 
   try {
-    // ✅ 1. ตรวจสอบว่าผู้ใช้เคยได้รับอนุมัติใบรับรองนี้หรือไม่
-    const existingApproved = await prisma.submission_details.findFirst({
-      where: {
-        certificate_type_id: parseInt(certificate_type_id),
-        submission: {
-          user_id: parseInt(user_id),
-          status: "approved",
-        },
+    // ✅ สร้าง submission เดียว
+    const submission = await prisma.submissions.create({
+      data: {
+        user_id,
+        academic_year_id,
+        type,
+        certificate_type_id,
+        hours: type !== "Certificate" ? parseInt(hours) : null,
+        status: "submitted",
       },
     });
 
-    if (existingApproved) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "You have already been approved for this certificate in another academic year.",
+    // ✅ เพิ่มไฟล์ทั้งหมดไปยัง submission_files
+    await Promise.all(
+      files.map((file) => {
+        const relativePath = file.path.replace(/\\/g, "/").split("uploads")[1];
+        const file_path = `/uploads${relativePath}`;
+        return prisma.submission_files.create({
+          data: {
+            submission_id: submission.submission_id,
+            file_path,
+          },
         });
-    }
+      })
+    );
 
-    // ✅ 2. ตรวจสอบว่าปีการศึกษาที่เลือกเปิดให้ยื่นหรือไม่
-    const academicYear = await prisma.academic_years.findUnique({
-      where: { academic_year_id: parseInt(academic_year_id) },
-    });
-
-    if (!academicYear || academicYear.status === "closed") {
-      return res
-        .status(400)
-        .json({ error: "This academic year is closed for submission" });
-    }
-
-    // ✅ 3. ตรวจสอบว่าผู้ใช้เคยสร้าง submission หรือยัง
-    let submission = await prisma.submissions.findFirst({
-      where: {
-        user_id: parseInt(user_id),
-        academic_year_id: parseInt(academic_year_id),
-      },
-    });
-
-    if (!submission) {
-      submission = await prisma.submissions.create({
-        data: {
-          user_id: parseInt(user_id),
-          academic_year_id: parseInt(academic_year_id),
-        },
-      });
-    }
-
-    // ✅ 4. บันทึกไฟล์ที่อัปโหลด
-    const file_path = `/uploads/${academicYear.year_name}/${username}_${
-      submission.submission_id
-    }${path.extname(req.file.originalname)}`;
-
-    // ✅ 5. เพิ่มข้อมูล submission_details
-    const newDetail = await prisma.submission_details.create({
+    // ✅ เพิ่ม log
+    await prisma.submission_status_logs.create({
       data: {
         submission_id: submission.submission_id,
-        certificate_type_id: parseInt(certificate_type_id),
-        file_path,
+        status: "submitted",
+        changed_by: user_id,
       },
     });
 
     res.json({
-      message: "Certificate submitted successfully",
-      data: newDetail,
+      message: "Submission created successfully",
+      data: submission,
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to submit certificate" });
+    console.error("❌ Error creating submission:", error);
+    res.status(500).json({ error: "Failed to create submission" });
   }
 };
 
 
-// ✅ ดูรายการที่ผู้ใช้ยื่นไปแล้ว
+// ✅ ดูรายการ Submission ของผู้ใช้เพื่อนำไปใข้ในหน้าอัปโหลดว่ามีการอัปโหลดไปแล้วหรือไม่
 exports.getUserSubmissions = async (req, res) => {
-  const { user_id, academic_year_id } = req.query;
-
+  const user_id = req.user.id;
   try {
     const submissions = await prisma.submissions.findMany({
       where: {
-        user_id: parseInt(user_id),
-        academic_year_id: parseInt(academic_year_id),
+        user_id,
       },
+      orderBy: { created_at: "desc" },
       include: {
-        submission_details: true,
+        certificate_type: true, // ✅ ดึงข้อมูลใบรับรองมาด้วย
+        status_logs: {
+          orderBy: { changed_at: "desc" },
+          take: 1,
+        },
       },
     });
-
     res.json(submissions);
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch submissions" });
+    res.status(500).json({ error: "Failed to fetch user submissions" });
   }
 };
 
-// ✅ ดูรายการใบรับรองที่รออนุมัติ (Admin)
+// ✅ Admin ดูรายการที่รออนุมัติทั้งหมด
 exports.getPendingSubmissions = async (req, res) => {
-    try {
-        const pendingSubmissions = await prisma.submission_details.findMany({
-            where: { status: "pending" },
-            include: {
-                submission: {
-                    include: {
-                        user: true,
-                        academic_year: true,
-                    },
-                },
-                certificate_type: true,
-            },
-        });
+  const { category, page = 1, pageSize = 50 } = req.query;
+  const numericPage = parseInt(page);
+  const numericPageSize = parseInt(pageSize);
 
-        res.json(pendingSubmissions);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch pending submissions" });
-    }
+  try {
+    const [submissions, totalSubmissions] = await Promise.all([
+      prisma.submissions.findMany({
+        where: {
+          status: "submitted",
+          type: category,
+        },
+        include: {
+          users: true,
+          academic_years: true,
+          certificate_type: true,
+          submission_files: true,
+          status_logs: {
+            orderBy: { changed_at: "desc" },
+            take: 1,
+          },
+        },
+        orderBy: { created_at: "desc" },
+        skip: (numericPage - 1) * numericPageSize,
+        take: numericPageSize,
+      }),
+      prisma.submissions.count({
+        where: {
+          status: "submitted",
+          type: category,
+        },
+      }),
+    ]);
+
+    const totalPages = Math.ceil(totalSubmissions / numericPageSize);
+
+    res.json({
+      submissions,
+      totalPages,
+      currentPage: numericPage,
+      totalSubmissions,
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching pending submissions:", error);
+    res.status(500).json({ error: "Failed to fetch pending submissions" });
+  }
 };
 
-// ✅ อนุมัติ / ปฏิเสธใบรับรอง (Admin)
+
+
+// ✅ Admin อนุมัติ / ปฏิเสธ Submission
 exports.reviewSubmission = async (req, res) => {
-    const { submission_detail_id } = req.params;
-    const { status, rejection_reason } = req.body;
+  const { submission_id } = req.params;
+  const { status, rejection_reason, hours } = req.body;
+  const admin_id = req.user.id;
 
-    try {
-        // ตรวจสอบว่า Submission มีอยู่หรือไม่
-        const submissionDetail = await prisma.submission_details.findUnique({
-            where: { submission_detail_id: parseInt(submission_detail_id) },
-        });
+  try {
+    const submission = await prisma.submissions.findUnique({
+      where: { submission_id },
+    });
+    if (!submission)
+      return res.status(404).json({ error: "Submission not found" });
 
-        if (!submissionDetail) {
-            return res.status(404).json({ error: "Submission not found" });
-        }
-
-        if (status === "approved") {
-            // ✅ ถ้าอนุมัติ ต้องอัปเดตสถานะเป็น "approved"
-            await prisma.submission_details.update({
-                where: { submission_detail_id: parseInt(submission_detail_id) },
-                data: { status: "approved", rejection_reason: null },
-            });
-        } else if (status === "rejected") {
-            // ❌ ถ้าปฏิเสธ ต้องมีเหตุผล
-            if (!rejection_reason) {
-                return res.status(400).json({ error: "Rejection reason is required" });
-            }
-            await prisma.submission_details.update({
-                where: { submission_detail_id: parseInt(submission_detail_id) },
-                data: { status: "rejected", rejection_reason },
-            });
-        } else {
-            return res.status(400).json({ error: "Invalid status" });
-        }
-
-        res.json({ message: `Submission ${status} successfully` });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to review submission" });
+    // กรณี Certificate
+    let finalHours = submission.hours;
+    if (submission.type === "Certificate") {
+      const cert = await prisma.certificate_types.findFirst({
+        where: {
+          certificate_type_id: submission.certificate_type_id,
+        },
+      });
+      if (cert) finalHours = cert.hours;
+    } else if (hours !== undefined) {
+      finalHours = parseInt(hours);
     }
+
+    const updated = await prisma.submissions.update({
+      where: { submission_id },
+      data: {
+        status,
+        rejection_reason: status === "rejected" ? rejection_reason : null,
+        hours: finalHours,
+      },
+    });
+
+    // ✅ เพิ่ม log
+    await prisma.submission_status_logs.create({
+      data: {
+        submission_id,
+        status,
+        reason: rejection_reason,
+        changed_by: admin_id,
+      },
+    });
+
+    res.json({ message: `Submission ${status} successfully`, data: updated });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to review submission" });
+  }
 };
 
-// ✅ อัปเดตสถานะว่าผู้ใช้ครบ 36 ชั่วโมงหรือไม่
-exports.updateSubmissionStatus = async (req, res) => {
-    const { user_id, academic_year_id } = req.body;
+// ✅ Admin อนุมัติ / ปฏิเสธหลายรายการพร้อมกัน
+exports.batchReviewSubmissions = async (req, res) => {
+  const { ids, status, rejection_reason } = req.body;
+  const admin_id = req.user.id;
 
-    try {
-        // ✅ คำนวณจำนวนชั่วโมงที่อนุมัติแล้ว
-        const approvedHours = await prisma.submission_details.aggregate({
-            where: {
-                submission: {
-                    user_id: parseInt(user_id),
-                    academic_year_id: parseInt(academic_year_id),
-                },
-                status: "approved",
-            },
-            _sum: { certificate_type: { hours: true } },
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: "ไม่มี submission ที่เลือก" });
+  }
+
+  try {
+    for (const submission_id of ids) {
+      const submission = await prisma.submissions.findUnique({
+        where: { submission_id },
+      });
+
+      if (!submission) continue;
+
+      let finalHours = submission.hours;
+      if (submission.type === "Certificate") {
+        const cert = await prisma.certificate_types.findFirst({
+          where: {
+            certificate_type_id: submission.certificate_type_id,
+          },
         });
+        if (cert) finalHours = cert.hours;
+      }
 
-        const totalApprovedHours = approvedHours._sum.hours || 0;
+      await prisma.submissions.update({
+        where: { submission_id },
+        data: {
+          status,
+          rejection_reason: status === "rejected" ? rejection_reason : null,
+          hours: finalHours,
+        },
+      });
 
-        if (totalApprovedHours >= 36) {
-            // ✅ ถ้าครบ 36 ชั่วโมง อัปเดตสถานะเป็น "approved"
-            await prisma.submission_status.upsert({
-                where: { user_id: parseInt(user_id) },
-                update: { status: "approved", is_marked: true },
-                create: {
-                    user_id: parseInt(user_id),
-                    academic_year_id: parseInt(academic_year_id),
-                    status: "approved",
-                    is_marked: true,
-                },
-            });
-
-            return res.json({ message: "User marked as completed (36 hours reached automatically)" });
-        }
-
-        return res.json({ message: "User has not yet reached 36 hours" });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to update submission status" });
+      await prisma.submission_status_logs.create({
+        data: {
+          submission_id,
+          status,
+          reason: rejection_reason,
+          changed_by: admin_id,
+        },
+      });
     }
+
+    res.json({ message: `Batch ${status} สำเร็จแล้ว` });
+  } catch (error) {
+    console.error("❌ Batch review error:", error);
+    res.status(500).json({ error: "เกิดข้อผิดพลาดขณะดำเนินการ batch-review" });
+  }
 };
-
-// ✅ ผู้ใช้กดปุ่ม "ขอใช้ชั่วโมงที่มีอยู่"
-exports.markUserSubmission = async (req, res) => {
-    const { user_id, academic_year_id } = req.body;
-
-    try {
-        // ✅ คำนวณจำนวนชั่วโมงที่อนุมัติแล้ว
-        const approvedHours = await prisma.submission_details.aggregate({
-            where: {
-                submission: {
-                    user_id: parseInt(user_id),
-                    academic_year_id: parseInt(academic_year_id),
-                },
-                status: "approved",
-            },
-            _sum: { certificate_type: { hours: true } },
-        });
-
-        const totalApprovedHours = approvedHours._sum.hours || 0;
-
-        // ✅ ทำเครื่องหมายว่าผู้ใช้ "ขอใช้ชั่วโมงที่มีอยู่"
-        await prisma.submission_status.upsert({
-            where: { user_id: parseInt(user_id) },
-            update: { is_marked: true, status: totalApprovedHours >= 36 ? "approved" : "pending" },
-            create: {
-                user_id: parseInt(user_id),
-                academic_year_id: parseInt(academic_year_id),
-                is_marked: true,
-                status: totalApprovedHours >= 36 ? "approved" : "pending",
-            },
-        });
-
-        return res.json({ message: "User marked submission request successfully" });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to mark submission request" });
-    }
-};
-
-// ✅ Admin ดูรายชื่อที่ขอใช้ชั่วโมง (ยังไม่ครบ 36 ชั่วโมง)
-exports.getPendingMarkedUsers = async (req, res) => {
-    try {
-        const pendingUsers = await prisma.submission_status.findMany({
-            where: { is_marked: true, status: "pending" },
-            include: { user: true, academic_year: true },
-        });
-
-        res.json(pendingUsers);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch pending marked users" });
-    }
-};
-
-// ✅ Admin ดูรายชื่อที่ได้รับอนุมัติครบ 36 ชั่วโมง
-exports.getCompletedUsers = async (req, res) => {
-    try {
-        const completedUsers = await prisma.submission_status.findMany({
-            where: { status: "approved" },
-            include: { user: true, academic_year: true },
-        });
-
-        res.json(completedUsers);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch completed users" });
-    }
-};
-

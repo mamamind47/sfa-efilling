@@ -1,9 +1,9 @@
 const express = require("express");
-const { registerUser, loginUser } = require("../controllers/authController");
+const { callback } = require("../controllers/authController");
 
 const router = express.Router();
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+// รับข้อมูลจาก /callback เพื่อเข้าสู่ระบบหรือสมัครสมาชิก
+router.post("/callback", callback);
 
 module.exports = router;

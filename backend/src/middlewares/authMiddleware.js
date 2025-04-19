@@ -1,14 +1,29 @@
+// src/middleware/authMiddleware.js
 const jwt = require("jsonwebtoken");
 
-module.exports = function (req, res, next) {
-  const token = req.header("Authorization")?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
 
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    res.status(401).json({ error: "Invalid token" });
+  if (token == null) {
+    return res.sendStatus(401); 
   }
+  jwt.verify(token, process.env.JWT_SECRET, (err, userPayload) => {
+    if (err) {
+      console.error("JWT Verification Error:", err.message);
+      return res.sendStatus(403); 
+    }
+
+    if (!userPayload || !userPayload.role) {
+      console.error("JWT Payload missing role:", userPayload);
+      return res
+        .status(403)
+        .json({ error: "Invalid token: Role information missing." });
+    }
+
+    req.user = userPayload; 
+    next(); 
+  });
 };
+
+module.exports = authenticateToken; 
