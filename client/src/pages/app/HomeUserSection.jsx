@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../../api/axiosConfig";
 import { CheckCircle, XCircle } from "lucide-react";
-import bgImage from "../../assets/HomeSection.png";
+import bgImage from "../../assets/HomeSection.webp";
 
 function UserHomeSection() {
   const [latestYear, setLatestYear] = useState("");
