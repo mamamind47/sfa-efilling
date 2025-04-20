@@ -13,9 +13,11 @@ import {
   Menu as MenuIcon,
   SlidersHorizontal,
   ChevronDown,
-  Upload, // <-- ตรวจสอบว่า Import ไอคอนครบ
+  Upload,
+  FileUp,
 } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
+
 
 // --- ข้อมูลเมนู ---
 const menuItemsData = (role) =>
@@ -54,7 +56,13 @@ const menuItemsData = (role) =>
           icon: Upload,
           text: "อัปโหลดชั่วโมง (MOD LINK)",
           roles: ["admin"],
-        }, // <-- ตรวจสอบข้อมูลตรงนี้
+        },
+        {
+          path: "/app/upload-scholarship",
+          icon: FileUp,
+          text: "อัปโหลดรายชื่อสมัครทุน",
+          roles: ["admin"],
+        },
       ],
     },
     {

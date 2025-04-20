@@ -13,4 +13,10 @@ router.post(
   linkController.uploadVolunteerHours
 );
 
+router.post(
+  "/upload-applied",
+  upload.single("file"),
+  linkController.uploadScholarshipApplied
+);
+
 module.exports = router;

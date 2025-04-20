@@ -70,7 +70,7 @@ function SelectSubmissionTypePage() {
       icon: <GraduationCap size={20} className="text-orange-500" />,
     },
     BloodDonate: {
-      label: "จากการบริจาคเลือด",
+      label: "ชั่วโมงจากการบริจาคเลือด",
       icon: <HeartPulse size={20} className="text-orange-500" />,
     },
   };

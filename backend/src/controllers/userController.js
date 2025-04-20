@@ -53,7 +53,7 @@ exports.getUserApprovedHours = async (req, res) => {
         });
         hours = cert?.hours || 0;
       } else {
-        hours = submission.manual_hours || 0;
+        hours = submission.hours || 0;
       }
 
       if (!rawResult[yearName]) rawResult[yearName] = {};
@@ -75,8 +75,43 @@ exports.getUserApprovedHours = async (req, res) => {
     }));
 
     res.json(finalResult);
+    console.log("✅ Fetched user hours successfully:", finalResult);
   } catch (error) {
     console.error("❌ Failed to fetch user hours:", error);
     res.status(500).json({ error: "Failed to fetch user hours" });
+  }
+};
+
+exports.getUserScholarshipStatus = async (req, res) => {
+  const user = req.user;
+
+  try {
+    // ดึงปีการศึกษาทั้งหมด
+    const academicYears = await prisma.academic_years.findMany();
+
+    // สร้าง Map ปี id -> name
+    const yearNameMap = {};
+    for (const y of academicYears) {
+      yearNameMap[y.year_name] = y.year_name;
+    }
+
+    // ดึงข้อมูลทุนของ user
+    const userScholarships = await prisma.linked_scholarship.findMany({
+      where: {
+        student_id: user.username,
+      },
+    });
+
+    // แปลงให้อยู่ในรูปแบบ flat array
+    const result = userScholarships.map((entry) => ({
+      year_name: entry.academic_year,
+      type: entry.type,
+    }));
+
+    res.json(result);
+    console.log("✅ Fetched flat scholarship list:", result);
+  } catch (error) {
+    console.error("❌ Failed to fetch scholarship list:", error);
+    res.status(500).json({ error: "Failed to fetch scholarship status" });
   }
 };

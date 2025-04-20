@@ -15,6 +15,7 @@ import {
   ClipboardEdit,
   SlidersHorizontal,
   Upload,
+  FileUp,
 } from "lucide-react";
 
 const DashboardPage = () => <div className="p-4">Dashboard Page</div>;
@@ -25,6 +26,7 @@ import SelectSubmissionTypePage from "../pages/app/SelectSubmissionTypePage.jsx"
 import PendingApprovalsPage from "../pages/app/PendingApprovalsPage.jsx";
 import SubmitCertificatePage from "../pages/app/SubmitCertificatePage.jsx";
 import SubmitBloodDonatePage from "../pages/app/SubmitBloodDonatePage.jsx";
+import UploadScholarshipPage from "../pages/app/UploadScholarshipPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -65,6 +67,12 @@ const menuItemsData = (role) =>
           path: "/app/upload-modlink",
           icon: Upload,
           text: "อัปโหลดชั่วโมง (MOD LINK)",
+          roles: ["admin"],
+        },
+        {
+          path: "/app/upload-scholarship",
+          icon: FileUp,
+          text: "อัปโหลดรายชื่อสมัครทุน",
           roles: ["admin"],
         },
       ],
@@ -162,6 +170,10 @@ function ProtectedLayout() {
                 <Route
                   path="completed-certificates"
                   element={<CompletedCertificatesPage />}
+                />
+                <Route
+                  path="upload-scholarship"
+                  element={<UploadScholarshipPage />}
                 />
               </>
             )}

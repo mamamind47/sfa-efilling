@@ -104,6 +104,15 @@ model submission_status_logs {
   changed_by_user users             @relation("StatusChanger", fields: [changed_by], references: [user_id])
 }
 
+model linked_scholarship {
+  id               Int    @id @default(autoincrement())
+  student_id      String
+  academic_year   String
+  type            String
+
+  @@unique([student_id, academic_year, type], name: "unique_scholarship")
+}
+
 enum submissions_status {
   submitted
   approved

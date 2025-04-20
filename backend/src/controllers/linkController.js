@@ -126,3 +126,54 @@ exports.uploadVolunteerHours = async (req, res) => {
     }
   }
 };
+
+
+exports.uploadScholarshipApplied = async (req, res) => {
+  const { type, academic_year } = req.body;
+
+  if (!req.file || !type || !academic_year) {
+    return res.status(400).json({ error: "Missing required file or fields." });
+  }
+
+  try {
+    const workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rows = xlsx.utils.sheet_to_json(worksheet, {
+      header: 1,
+      range: 5, // เริ่มจากแถว C6 เป็นต้นไป
+    });
+
+    const studentIds = rows
+      .map((r) => String(r[2]).trim())
+      .filter((id) => id && /^\d{11}$/.test(id));
+
+    const dataToInsert = studentIds.map((student_id) => ({
+      student_id,
+      academic_year,
+      type,
+    }));
+
+    const result = await prisma.linked_scholarship.createMany({
+      data: dataToInsert,
+      skipDuplicates: true, // ✅ ข้ามแถวที่ซ้ำ (มี composite key เดิมอยู่แล้ว)
+    });
+
+    res.json({
+      message: `Upload completed. Success: ${
+        result.count
+      }, Duplicates skipped: ${studentIds.length - result.count}`,
+    });
+
+    console.log(
+      `Upload completed. Success: ${result.count}, Skipped: ${
+        studentIds.length - result.count
+      }`
+    );
+  } catch (err) {
+    console.error("Upload failed:", err);
+    res
+      .status(500)
+      .json({ error: "Failed to process file", details: err.message });
+  }
+};

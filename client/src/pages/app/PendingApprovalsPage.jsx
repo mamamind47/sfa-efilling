@@ -357,3 +357,9 @@ function PendingApprovalsPage() {
 }
 
 export default PendingApprovalsPage;
+
+// ทีนี้มาปรับแต่งตารางกัน 
+// ตัดเอาคอลัมน์ประเภทออกทั้งหมด ยกเว้น ตารางที่กรอง Others
+// ตารางที่กรอง Certificate ตัดคอลัมน์ชั่วโมงออก
+// ส่วน BloodDonate NSF AOM YOUNG ให้ตัดคอลัมน์ หัวข้ออก 
+// และอย่าลืมว่า BloodDonate NSF AOM YOUNG Others ต้องแก้ไขชั่วโมงที่อนุมัติให้ต่างกับที่ user ยื่นมาได้
