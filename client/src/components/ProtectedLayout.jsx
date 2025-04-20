@@ -2,7 +2,7 @@
 import React from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import NavBar from "./NavBar.jsx";
+import NavBar from "./NavBar";
 import logo from "../assets/SL_e-Filling.png";
 import { LogOut, ChevronDown } from "lucide-react";
 
@@ -27,6 +27,7 @@ import PendingApprovalsPage from "../pages/app/PendingApprovalsPage.jsx";
 import SubmitCertificatePage from "../pages/app/SubmitCertificatePage.jsx";
 import SubmitBloodDonatePage from "../pages/app/SubmitBloodDonatePage.jsx";
 import UploadScholarshipPage from "../pages/app/UploadScholarshipPage.jsx";
+import UserHomeSection from "../pages/app/HomeUserSection.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -129,10 +130,9 @@ function ProtectedLayout() {
         <NavBar />
         <div className="p-4 flex-grow">
           <Routes>
-            <Route path="dashboard" element={<DashboardPage />} />
-
             {role === "student" && (
               <>
+                <Route path="dashboard" element={<UserHomeSection />} />
                 <Route
                   path="submit/select"
                   element={<SelectSubmissionTypePage />}
@@ -154,6 +154,7 @@ function ProtectedLayout() {
 
             {role === "admin" && (
               <>
+                <Route path="dashboard" element={<DashboardPage />} />
                 <Route
                   path="manage-academic-year"
                   element={<ManageAcademicYearPage />}
