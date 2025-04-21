@@ -1,20 +1,14 @@
-// src/pages/app/SubmitBloodDonatePage.jsx
+// src/pages/app/SubmitNSFPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
-import {
-  UploadCloud,
-  FileText,
-  CheckCircle2,
-  X,
-  RotateCcw,
-} from "lucide-react";
+import { UploadCloud, CheckCircle2, X, RotateCcw } from "lucide-react";
 import apiClient from "../../api/axiosConfig";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 dayjs.locale("th");
 
-function SubmitBloodDonatePage() {
+function SubmitNSFPage() {
   const { academic_year_id } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef();
@@ -33,8 +27,7 @@ function SubmitBloodDonatePage() {
         const res = await apiClient.get("/submission");
         const existing = res.data.find(
           (item) =>
-            item.type === "BloodDonate" &&
-            item.academic_year_id === academic_year_id
+            item.type === "NSF" && item.academic_year_id === academic_year_id
         );
         if (existing) {
           setAlreadySubmitted(true);
@@ -72,7 +65,7 @@ function SubmitBloodDonatePage() {
 
     const formData = new FormData();
     formData.append("academic_year_id", academic_year_id);
-    formData.append("type", "BloodDonate");
+    formData.append("type", "NSF");
     formData.append("hours", parseInt(hours));
     acceptedFiles.forEach((file) => formData.append("files", file));
 
@@ -119,7 +112,6 @@ function SubmitBloodDonatePage() {
     return (
       <div className="mt-6 text-sm text-center space-y-4">
         <h3 className="font-semibold text-base text-center">สถานะคำขอ</h3>
-
         <div className="flex items-center justify-center">
           <div className="flex flex-col items-center">
             <div className={stepClass(1)}>1</div>
@@ -208,7 +200,7 @@ function SubmitBloodDonatePage() {
     return (
       <div className="max-w-xl mx-auto p-6 space-y-6 text-center">
         <h2 className="text-xl font-semibold text-red-600">
-          คุณได้ส่งคำขอสำหรับการบริจาคโลหิตในปีการศึกษานี้แล้ว
+          คุณได้ส่งคำขอสำหรับออมเงิน กอช. ในปีการศึกษานี้แล้ว
         </h2>
         <p className="text-gray-600">ระบบอนุญาตให้ส่งได้เพียงครั้งเดียวต่อปี</p>
         <button
@@ -226,16 +218,21 @@ function SubmitBloodDonatePage() {
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold text-center">
-        อัปโหลดใบรับรองการบริจาคโลหิต
+        อัปโหลดเอกสารออมเงิน กอช.
       </h1>
 
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-        โปรดอัปโหลดบัตรประจำตัวผู้บริจาคโลหิตทั้งหน้าและหลัง
+        โปรดอัปโหลดเกียรติบัตร (ถ้ามี) และรายการเดินบัญชี (Statement)
+        ที่ดาวน์โหลดจากระบบของ กอช.
         <br />
         การส่งขออนุมัติชั่วโมงจิตอาสาสามารถทำได้ครั้งเดียวต่อปีการศึกษาเท่านั้น
         <br />
-        (แต่สามารถบริจาคได้หลายครั้ง
-        โปรดทำให้ครบครั้งที่คาดว่าจะทำแล้วอัปโหลดทีเดียว)
+        (สามารถออมได้เดือนละ 1 ครั้ง
+        โปรดทำให้ครบครั้งที่คาดว่าจะทำทั้งปีแล้วอัปโหลดทีเดียว)
+        <br />
+        หากมีการอนุมัติแล้วจะไม่สามารถส่งเพิ่มได้อีก
+        <br />
+        <strong>วิธีการคำนวณชั่วโมง:</strong> ออม 1 ครั้ง เท่ากับ 1 ชั่วโมง
       </div>
 
       <div className="flex items-center space-x-2">
@@ -328,4 +325,4 @@ function SubmitBloodDonatePage() {
   );
 }
 
-export default SubmitBloodDonatePage;
+export default SubmitNSFPage;

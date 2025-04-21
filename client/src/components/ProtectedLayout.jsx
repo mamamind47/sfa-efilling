@@ -28,6 +28,8 @@ import SubmitCertificatePage from "../pages/app/SubmitCertificatePage.jsx";
 import SubmitBloodDonatePage from "../pages/app/SubmitBloodDonatePage.jsx";
 import UploadScholarshipPage from "../pages/app/UploadScholarshipPage.jsx";
 import UserHomeSection from "../pages/app/HomeUserSection.jsx";
+import SubmitNSFPage from "../pages/app/SubmitNSFPage.jsx";
+import SubmitAOMYoungPage from "../pages/app/SubmitAOMYoungPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -148,6 +150,14 @@ function ProtectedLayout() {
                 <Route
                   path="submit/:academic_year_id/blood-donate"
                   element={<SubmitBloodDonatePage />}
+                />
+                <Route
+                  path="submit/:academic_year_id/nsf"
+                  element={<SubmitNSFPage />}
+                />
+                <Route
+                  path="submit/:academic_year_id/aom-young"
+                  element={<SubmitAOMYoungPage />} 
                 />
               </>
             )}

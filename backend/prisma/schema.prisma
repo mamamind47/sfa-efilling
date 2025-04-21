@@ -39,6 +39,7 @@ model submissions {
   rejection_reason     String?             @db.VarChar(255)
   submission_files  submission_files[]
   hours                Int?
+  hours_requested      Int?
   certificate_type_id  String?             @db.Char(36)
   created_at           DateTime            @default(now()) @db.DateTime(0)
   updated_at           DateTime            @default(now()) @db.DateTime(0)

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import apiClient from "../../api/axiosConfig";
 import {
   HeartPulse,
@@ -8,6 +9,8 @@ import {
   Puzzle,
   ArrowRight,
   CheckCircle,
+  PiggyBank,
+  LineChart,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
@@ -17,6 +20,7 @@ dayjs.extend(buddhistEra);
 dayjs.locale("th");
 
 function SelectSubmissionTypePage() {
+  document.title = "ยื่นเอกสาร | Volunteer Student Loan e-Filling";
   const [hoursData, setHoursData] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedYearId, setSelectedYearId] = useState(null);
@@ -73,6 +77,14 @@ function SelectSubmissionTypePage() {
       label: "ชั่วโมงจากการบริจาคเลือด",
       icon: <HeartPulse size={20} className="text-orange-500" />,
     },
+    NSF: {
+      label: "ชั่วโมงจากการออมเงิน กอช.",
+      icon: <PiggyBank size={20} className="text-orange-500" />,
+    },
+    "AOM YOUNG": {
+      label: "ชั่วโมงจากการลงทุน AOM YOUNG",
+      icon: <LineChart size={20} className="text-orange-500" />,
+    },
   };
 
   const yearData = hoursData.find(
@@ -95,8 +107,12 @@ function SelectSubmissionTypePage() {
   const isCompleted = total >= 36;
 
   return (
-    <div className="p-4 md:p-6">
-      {/* Year Selector */}
+    <motion.div
+      className="p-4 md:p-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       {academicYears.length > 0 && (
         <div className="mb-4 max-w-2xl">
           <label className="block mb-1 font-medium text-base-content">
@@ -120,7 +136,6 @@ function SelectSubmissionTypePage() {
 
       {error && <div className="alert alert-error mb-4">{error}</div>}
 
-      {/* Progress Summary */}
       {yearData && (
         <div className="mb-6 max-w-3xl">
           <div className="border border-orange-200 rounded-xl p-4 bg-orange-50">
@@ -128,12 +143,12 @@ function SelectSubmissionTypePage() {
               จำนวนชั่วโมงจิตอาสาทั้งหมด
             </p>
             <div className="h-4 rounded-full overflow-hidden bg-base-300">
-              <div
+              <motion.div
                 className="h-full bg-gradient-to-r from-yellow-400 via-orange-400 to-red-400"
-                style={{
-                  width: `${Math.min((total / 36) * 100, 100)}%`,
-                }}
-              ></div>
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min((total / 36) * 100, 100)}%` }}
+                transition={{ duration: 1, ease: "easeOut" }}
+              />
             </div>
             <p
               className={`text-xl font-bold text-right mt-1 flex items-center justify-end gap-2 ${
@@ -149,7 +164,6 @@ function SelectSubmissionTypePage() {
         </div>
       )}
 
-      {/* Summary by category */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-8">
         {entries &&
           entries.map(([key, value]) => {
@@ -159,9 +173,12 @@ function SelectSubmissionTypePage() {
             };
 
             return (
-              <div
+              <motion.div
                 key={key}
                 className="card bg-base-100 shadow-sm border border-base-200"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
               >
                 <div className="card-body">
                   <h2 className="card-title text-base-content text-md">
@@ -172,18 +189,21 @@ function SelectSubmissionTypePage() {
                     {value} ชั่วโมง
                   </p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
       </div>
 
-      {/* Submission Category Selection */}
       <h2 className="text-xl font-semibold mb-3 text-base-content">
         เลือกรายการที่ต้องการยื่น
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <button
+        <motion.button
           className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
           onClick={() => navigate(`/app/submit/${selectedYearId}/blood-donate`)}
         >
           <div className="card-body flex items-center justify-between gap-4">
@@ -200,10 +220,14 @@ function SelectSubmissionTypePage() {
             </div>
             <ArrowRight className="shrink-0" />
           </div>
-        </button>
+        </motion.button>
 
-        <button
+        <motion.button
           className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
           onClick={() => navigate(`/app/submit/${selectedYearId}/certificate`)}
         >
           <div className="card-body flex items-center justify-between gap-4">
@@ -213,16 +237,62 @@ function SelectSubmissionTypePage() {
                 <p className="text-base font-semibold text-base-content">
                   เรียนออนไลน์
                 </p>
+                <p className="text-sm text-base-content">เช่น SET e-Learning</p>
+              </div>
+            </div>
+            <ArrowRight className="shrink-0" />
+          </div>
+        </motion.button>
+
+        <motion.button
+          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          onClick={() => navigate(`/app/submit/${selectedYearId}/nsf`)}
+        >
+          <div className="card-body flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <PiggyBank size={40} className="text-rose-500" />
+              <div>
+                <p className="text-base font-semibold text-base-content">
+                  ออมเงิน กอช.
+                </p>
                 <p className="text-sm text-base-content">
-                  เช่น SET e-Learning
+                  แนบ Statement และเกียรติบัตร (ถ้ามี)
                 </p>
               </div>
             </div>
             <ArrowRight className="shrink-0" />
           </div>
-        </button>
+        </motion.button>
+
+        <motion.button
+          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          onClick={() => navigate(`/app/submit/${selectedYearId}/aom-young`)}
+        >
+          <div className="card-body flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <LineChart size={40} className="text-green-600" />
+              <div>
+                <p className="text-base font-semibold text-base-content">
+                  AOM YOUNG
+                </p>
+                <p className="text-sm text-base-content">
+                  แนบสลิปการลงทุน และ Statement (ถ้ามี)
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="shrink-0" />
+          </div>
+        </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

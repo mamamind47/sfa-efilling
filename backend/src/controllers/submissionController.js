@@ -12,19 +12,17 @@ exports.submitSubmission = async (req, res) => {
   }
 
   try {
-    // ✅ สร้าง submission เดียว
     const submission = await prisma.submissions.create({
       data: {
         user_id,
         academic_year_id,
         type,
         certificate_type_id,
-        hours: type !== "Certificate" ? parseInt(hours) : null,
+        hours_requested: type !== "Certificate" ? parseInt(hours) : null,
         status: "submitted",
       },
     });
 
-    // ✅ เพิ่มไฟล์ทั้งหมดไปยัง submission_files
     await Promise.all(
       files.map((file) => {
         const relativePath = file.path.replace(/\\/g, "/").split("uploads")[1];
@@ -38,7 +36,6 @@ exports.submitSubmission = async (req, res) => {
       })
     );
 
-    // ✅ เพิ่ม log
     await prisma.submission_status_logs.create({
       data: {
         submission_id: submission.submission_id,
@@ -57,8 +54,6 @@ exports.submitSubmission = async (req, res) => {
   }
 };
 
-
-// ✅ ดูรายการ Submission ของผู้ใช้เพื่อนำไปใข้ในหน้าอัปโหลดว่ามีการอัปโหลดไปแล้วหรือไม่
 exports.getUserSubmissions = async (req, res) => {
   const user_id = req.user.id;
   try {
@@ -68,7 +63,7 @@ exports.getUserSubmissions = async (req, res) => {
       },
       orderBy: { created_at: "desc" },
       include: {
-        certificate_type: true, // ✅ ดึงข้อมูลใบรับรองมาด้วย
+        certificate_type: true,
         status_logs: {
           orderBy: { changed_at: "desc" },
           take: 1,
@@ -81,7 +76,6 @@ exports.getUserSubmissions = async (req, res) => {
   }
 };
 
-// ✅ Admin ดูรายการที่รออนุมัติทั้งหมด
 exports.getPendingSubmissions = async (req, res) => {
   const { category, page = 1, pageSize = 50 } = req.query;
   const numericPage = parseInt(page);
@@ -90,10 +84,7 @@ exports.getPendingSubmissions = async (req, res) => {
   try {
     const [submissions, totalSubmissions] = await Promise.all([
       prisma.submissions.findMany({
-        where: {
-          status: "submitted",
-          type: category,
-        },
+        where: { status: "submitted", type: category },
         include: {
           users: true,
           academic_years: true,
@@ -109,10 +100,7 @@ exports.getPendingSubmissions = async (req, res) => {
         take: numericPageSize,
       }),
       prisma.submissions.count({
-        where: {
-          status: "submitted",
-          type: category,
-        },
+        where: { status: "submitted", type: category },
       }),
     ]);
 
@@ -124,16 +112,12 @@ exports.getPendingSubmissions = async (req, res) => {
       currentPage: numericPage,
       totalSubmissions,
     });
-
   } catch (error) {
     console.error("❌ Error fetching pending submissions:", error);
     res.status(500).json({ error: "Failed to fetch pending submissions" });
   }
 };
 
-
-
-// ✅ Admin อนุมัติ / ปฏิเสธ Submission
 exports.reviewSubmission = async (req, res) => {
   const { submission_id } = req.params;
   const { status, rejection_reason, hours } = req.body;
@@ -146,16 +130,17 @@ exports.reviewSubmission = async (req, res) => {
     if (!submission)
       return res.status(404).json({ error: "Submission not found" });
 
-    // กรณี Certificate
     let finalHours = submission.hours;
     if (submission.type === "Certificate") {
       const cert = await prisma.certificate_types.findFirst({
-        where: {
-          certificate_type_id: submission.certificate_type_id,
-        },
+        where: { certificate_type_id: submission.certificate_type_id },
       });
       if (cert) finalHours = cert.hours;
-    } else if (hours !== undefined) {
+    } else {
+      if (hours === undefined)
+        return res
+          .status(400)
+          .json({ error: "กรุณาระบุจำนวนชั่วโมงที่อนุมัติ" });
       finalHours = parseInt(hours);
     }
 
@@ -168,7 +153,6 @@ exports.reviewSubmission = async (req, res) => {
       },
     });
 
-    // ✅ เพิ่ม log
     await prisma.submission_status_logs.create({
       data: {
         submission_id,
@@ -184,7 +168,6 @@ exports.reviewSubmission = async (req, res) => {
   }
 };
 
-// ✅ Admin อนุมัติ / ปฏิเสธหลายรายการพร้อมกัน
 exports.batchReviewSubmissions = async (req, res) => {
   const { ids, status, rejection_reason } = req.body;
   const admin_id = req.user.id;
@@ -199,17 +182,13 @@ exports.batchReviewSubmissions = async (req, res) => {
         where: { submission_id },
       });
 
-      if (!submission) continue;
+      if (!submission || submission.type !== "Certificate") continue;
 
       let finalHours = submission.hours;
-      if (submission.type === "Certificate") {
-        const cert = await prisma.certificate_types.findFirst({
-          where: {
-            certificate_type_id: submission.certificate_type_id,
-          },
-        });
-        if (cert) finalHours = cert.hours;
-      }
+      const cert = await prisma.certificate_types.findFirst({
+        where: { certificate_type_id: submission.certificate_type_id },
+      });
+      if (cert) finalHours = cert.hours;
 
       await prisma.submissions.update({
         where: { submission_id },
