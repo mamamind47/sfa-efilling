@@ -79,7 +79,8 @@ function SubmitCertificatePage() {
     setShowUploadModal(false);
     setUploadTarget(null);
     setPreviewFiles([]);
-    await fetchSubmissions(); // ✅ โหลดข้อมูลใหม่หลังอัปโหลด
+    setStatusPopup(null); // ✅ ปิด popup สถานะเมื่ออัปโหลดเสร็จ
+    await fetchSubmissions();
   };
 
   const renderStatusStep = (sub) => {
@@ -167,7 +168,10 @@ function SubmitCertificatePage() {
               <div className="text-center mt-4">
                 <button
                   className="btn btn-outline btn-error group"
-                  onClick={() => handleUpload(sub.certificate_type_id)}
+                  onClick={() => {
+                    handleUpload(sub.certificate_type_id);
+                    setStatusPopup(null); // ✅ ปิด popup ก่อนเปิด upload
+                  }}
                 >
                   <RotateCcw
                     size={16}
