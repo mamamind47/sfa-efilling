@@ -186,8 +186,9 @@ function UploadScholarshipPage() {
           onChange={(e) => setSelectedType(e.target.value)}
         >
           <option value="">เลือกประเภท</option>
-          <option value="ประเภทที่ 1">ประเภทที่ 1</option>
-          <option value="ประเภทที่ 2">ประเภทที่ 2</option>
+          <option value="ลักษณะที่ 1">ลักษณะที่ 1</option>
+          <option value="ลักษณะที่ 2">ลักษณะที่ 2</option>
+          <option value="ลักษณะที่ 3">ลักษณะที่ 3</option>
         </select>
 
         <select
