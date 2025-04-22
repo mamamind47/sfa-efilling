@@ -2,7 +2,7 @@
 import React from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import NavBar from "./NavBar";
+import NavBar from "./Navbar";
 import logo from "../assets/SL_e-Filling.png";
 import { LogOut, ChevronDown } from "lucide-react";
 
@@ -30,6 +30,7 @@ import UploadScholarshipPage from "../pages/app/UploadScholarshipPage.jsx";
 import UserHomeSection from "../pages/app/HomeUserSection.jsx";
 import SubmitNSFPage from "../pages/app/SubmitNSFPage.jsx";
 import SubmitAOMYoungPage from "../pages/app/SubmitAOMYoungPage.jsx";
+import AdminUserStatsPage from "../pages/app/AdminUserStatsPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -157,7 +158,7 @@ function ProtectedLayout() {
                 />
                 <Route
                   path="submit/:academic_year_id/aom-young"
-                  element={<SubmitAOMYoungPage />} 
+                  element={<SubmitAOMYoungPage />}
                 />
               </>
             )}
@@ -180,7 +181,7 @@ function ProtectedLayout() {
                 />
                 <Route
                   path="completed-certificates"
-                  element={<CompletedCertificatesPage />}
+                  element={<AdminUserStatsPage />}
                 />
                 <Route
                   path="upload-scholarship"

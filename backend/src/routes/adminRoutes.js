@@ -1,5 +1,7 @@
 const express = require("express");
-const { getActiveStudents } = require("../controllers/adminController");
+const {
+  getActiveStudents
+} = require("../controllers/adminController");
 
 const router = express.Router();
 
