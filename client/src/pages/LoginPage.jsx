@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { GraduationCap } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
+import KMUTT from "../assets/KMUTT.png";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const LoginPage = () => {
         {/* โลโก้ */}
         <div className="flex items-center justify-center space-x-4">
           <img
-            src="/src/assets/KMUTT.png"
+            src={KMUTT}
             alt="KMUTT Logo"
             className="w-16 md:w-20"
           />
