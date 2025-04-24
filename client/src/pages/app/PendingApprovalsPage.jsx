@@ -68,6 +68,7 @@ function PendingApprovalsPage() {
   }, [filter, currentPage]);
 
   useEffect(() => {
+    document.title = "รายการรออนุมัติ | Volunteer Student Loan e-Filling";
     fetchData();
   }, [fetchData]);
 

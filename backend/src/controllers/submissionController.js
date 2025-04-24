@@ -120,8 +120,18 @@ exports.getPendingSubmissions = async (req, res) => {
 
 exports.reviewSubmission = async (req, res) => {
   const { submission_id } = req.params;
-  const { status, rejection_reason, hours } = req.body;
+  const { status, rejection_reason, hours } = req.body; // รับ status, rejection_reason, hours จาก body
   const admin_id = req.user.id;
+
+  // Input validation เพิ่มเติม (แนะนำ)
+  if (!status || (status === "rejected" && !rejection_reason)) {
+    return res
+      .status(400)
+      .json({
+        error:
+          "กรุณาระบุข้อมูลให้ครบถ้วน (status และ rejection_reason ถ้าปฏิเสธ)",
+      });
+  }
 
   try {
     const submission = await prisma.submissions.findUnique({
@@ -130,40 +140,66 @@ exports.reviewSubmission = async (req, res) => {
     if (!submission)
       return res.status(404).json({ error: "Submission not found" });
 
-    let finalHours = submission.hours;
+    let finalHours = submission.hours; // กำหนดค่าเริ่มต้นเป็นชั่วโมงเดิมของ submission
+
     if (submission.type === "Certificate") {
       const cert = await prisma.certificate_types.findFirst({
         where: { certificate_type_id: submission.certificate_type_id },
       });
-      if (cert) finalHours = cert.hours;
+      // ถ้าเจอ certificate type และ status ไม่ใช่ rejected ให้ใช้ชั่วโมงจาก certificate
+      // (อาจจะต้องพิจารณาว่าถ้า reject certificate ควรเก็บชั่วโมงเดิม หรือ 0 หรือ null)
+      // ในที่นี้ยังคงใช้ชั่วโมงจาก cert ถ้าหาเจอ ไม่ว่า status จะเป็นอะไร
+      if (cert) {
+        finalHours = cert.hours;
+      }
+      // หากไม่เจอ cert อาจจะ fallback ไปใช้ submission.hours หรือบังคับ error ตามนโยบาย
     } else {
-      if (hours === undefined)
-        return res
-          .status(400)
-          .json({ error: "กรุณาระบุจำนวนชั่วโมงที่อนุมัติ" });
-      finalHours = parseInt(hours);
+      // ----- ส่วนที่แก้ไข -----
+      // ตรวจสอบและกำหนดค่า hours เฉพาะกรณีที่ไม่ใช่ Certificate และ status เป็น 'approved' (หรือสถานะอื่นที่ต้องการ)
+      if (status === "approved") {
+        // หรืออาจจะเป็นเงื่อนไขอื่นเช่น status !== 'rejected'
+        if (hours === undefined) {
+          // ถ้าอนุมัติ แต่ไม่ส่ง hours มา -> error
+          return res
+            .status(400)
+            .json({ error: "กรุณาระบุจำนวนชั่วโมงที่อนุมัติ" });
+        }
+        // แปลง hours ที่ส่งมาเป็น integer ถ้า status เป็น approved
+        finalHours = parseInt(hours);
+        if (isNaN(finalHours)) {
+          // ตรวจสอบว่าเป็นตัวเลขหรือไม่หลังแปลง
+          return res
+            .status(400)
+            .json({ error: "จำนวนชั่วโมงที่ระบุไม่ถูกต้อง" });
+        }
+      }
+      // ถ้า status เป็น 'rejected' หรือสถานะอื่น จะใช้ค่า finalHours ที่กำหนดไว้ตอนต้น (submission.hours)
+      // ----- จบส่วนที่แก้ไข -----
     }
 
+    // อัปเดตข้อมูล submission
     const updated = await prisma.submissions.update({
       where: { submission_id },
       data: {
         status,
-        rejection_reason: status === "rejected" ? rejection_reason : null,
-        hours: finalHours,
+        rejection_reason: status === "rejected" ? rejection_reason : null, // ใส่เหตุผลเฉพาะเมื่อ rejected
+        hours: finalHours, // ใช้ค่า finalHours ที่คำนวณไว้
       },
     });
 
+    // สร้าง log การเปลี่ยนสถานะ
     await prisma.submission_status_logs.create({
       data: {
         submission_id,
         status,
-        reason: rejection_reason,
+        reason: status === "rejected" ? rejection_reason : null, // ใส่เหตุผลเฉพาะเมื่อ rejected
         changed_by: admin_id,
       },
     });
 
     res.json({ message: `Submission ${status} successfully`, data: updated });
   } catch (error) {
+    console.error("Failed to review submission:", error); // แสดง log error จริง ๆ ด้วยจะดีมาก
     res.status(500).json({ error: "Failed to review submission" });
   }
 };

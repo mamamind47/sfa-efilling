@@ -19,6 +19,7 @@ const LoginPage = () => {
   };
 
   useEffect(() => {
+    document.title = "เข้าสู่ระบบ | Volunteer Student Loan e-Filling";
     if (isAuthenticated) {
       navigate("/app/dashboard", { replace: true });
     }

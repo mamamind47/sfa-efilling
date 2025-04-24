@@ -153,6 +153,7 @@ function ManageAcademicYearPage() {
 
   // --- Load initial data (เรียก fetchAcademicYears) ---
   useEffect(() => {
+    document.title = "จัดการปีการศึกษา | Volunteer Student Loan e-Filling";
     fetchAcademicYears();
   }, [fetchAcademicYears]); // ใส่ fetchAcademicYears ที่ห่อด้วย useCallback แล้ว
 
