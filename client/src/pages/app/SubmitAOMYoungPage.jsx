@@ -151,11 +151,31 @@ function SubmitAOMYoungPage() {
             )}
           </p>
           {submittedData?.status_logs?.[0]?.status === "rejected" && (
-            <div className="border border-red-400 bg-red-50 text-red-600 p-3 rounded mt-3">
-              <p>
-                <span className="font-semibold">เหตุผลที่ปฏิเสธ:</span>{" "}
-                {submittedData.status_logs?.[0]?.reason || "ไม่ระบุ"}
-              </p>
+            <div className="text-center mt-6 space-y-3">
+              {" "}
+              {/* ปรับ layout ให้เหมือนกัน */}
+              <div className="border border-red-400 bg-red-50 text-red-600 p-3 rounded">
+                <p>
+                  <span className="font-semibold">เหตุผลที่ปฏิเสธ:</span>{" "}
+                  {submittedData.status_logs?.[0]?.reason || "ไม่ระบุ"}
+                </p>
+              </div>
+              <button
+                className="btn btn-outline border-red-500 text-red-500 hover:border-red-600 transition-none"
+                onClick={() => {
+                  setAlreadySubmitted(false); 
+                  setAcceptedFiles([]);
+                  setShowSuccess(false);
+                  setHours(0);
+                  setAgreed(false); 
+                }}
+              >
+                <RotateCcw
+                  size={16}
+                  className="mr-1" 
+                />
+                อัปโหลดใหม่
+              </button>
             </div>
           )}
         </div>

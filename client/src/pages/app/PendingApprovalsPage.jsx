@@ -34,10 +34,12 @@ function PendingApprovalsPage() {
   const [reviewingSubmission, setReviewingSubmission] = useState(null);
   const [individualStatus, setIndividualStatus] = useState(null);
   const [individualReason, setIndividualReason] = useState("");
-  const [individualHours, setIndividualHours] = useState(""); // This will hold the value to be approved
+  const [individualHours, setIndividualHours] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
 
   const categories = [
     "Certificate",
@@ -50,13 +52,21 @@ function PendingApprovalsPage() {
   const fetchData = useCallback(async () => {
     setIsPreviewDrawerOpen(false);
     setReviewingSubmission(null);
+    // setLoadingIndividual(true); // Consider a general loading state if preferred
+    // setLoadingBatch(true); // Or separate loading states for table data
     try {
       const res = await apiClient.get("/submission/pending", {
-        params: { category: filter, page: currentPage, limit: 20 },
+        params: {
+          category: filter,
+          page: currentPage,
+          pageSize: pageSize, // << UPDATED: Use pageSize
+          searchQuery: searchQuery, // << NEW: Pass searchQuery
+          sortOption: sortOption, // << NEW: Pass sortOption
+        },
       });
       setSubmissions(res.data.submissions || []);
       setTotalPages(res.data.totalPages || 1);
-      setSelectedIds([]);
+      setSelectedIds([]); // Clear selections on new data load
     } catch (err) {
       console.error("โหลดข้อมูลล้มเหลว", err);
       toast.error(
@@ -64,57 +74,19 @@ function PendingApprovalsPage() {
       );
       setSubmissions([]);
       setTotalPages(1);
+    } finally {
+      // setLoadingIndividual(false);
+      // setLoadingBatch(false);
     }
-  }, [filter, currentPage]);
+  }, [filter, currentPage, pageSize, searchQuery, sortOption]); // << UPDATED: Dependencies
 
   useEffect(() => {
     document.title = "รายการรออนุมัติ | Volunteer Student Loan e-Filling";
     fetchData();
-  }, [fetchData]);
+  }, [fetchData]); 
 
   // --- Filtering and Sorting ---
-  const filtered = useMemo(
-    () =>
-      Array.isArray(submissions)
-        ? submissions
-            .filter((s) => {
-              const q = searchQuery.toLowerCase();
-              return (
-                s.users?.name?.toLowerCase().includes(q) ||
-                s.users?.username?.toLowerCase().includes(q) ||
-                s.users?.major?.toLowerCase().includes(q) ||
-                s.certificate_type?.certificate_name
-                  ?.toLowerCase()
-                  .includes(q) ||
-                (s.type === "Certificate" &&
-                  s.certificate_type?.category?.toLowerCase().includes(q)) ||
-                s.topic?.toLowerCase().includes(q)
-              );
-            })
-            .sort((a, b) => {
-              // ... (sorting logic remains the same)
-              if (sortOption === "latest") {
-                return new Date(b.created_at) - new Date(a.created_at);
-              } else if (sortOption === "oldest") {
-                return new Date(a.created_at) - new Date(b.created_at);
-              } else if (sortOption === "type") {
-                const typeA =
-                  a.type === "Certificate"
-                    ? a.certificate_type?.category || "หมวดหมู่?"
-                    : a.type;
-                const typeB =
-                  b.type === "Certificate"
-                    ? b.certificate_type?.category || "หมวดหมู่?"
-                    : b.type;
-                return (typeA || "").localeCompare(typeB || "");
-              } else if (sortOption === "user") {
-                return (a.users?.name || "").localeCompare(b.users?.name || "");
-              }
-              return 0;
-            })
-        : [],
-    [submissions, searchQuery, sortOption]
-  );
+  // REMOVED: const filtered = useMemo(...) as backend handles this now
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
@@ -127,14 +99,13 @@ function PendingApprovalsPage() {
     () =>
       selectedIds.length > 0 &&
       selectedIds.every((id) => {
-        const sub = submissions.find((s) => s.submission_id === id);
+        const sub = submissions.find((s) => s.submission_id === id); // Use submissions directly
         return sub?.type === "Certificate";
       }),
     [selectedIds, submissions]
   );
 
   const handleBatchReview = async (status, reason = null) => {
-    // ... (batch review logic remains the same)
     if (!canBatchReview) {
       toast.error(
         "การดำเนินการหลายรายการรองรับเฉพาะประเภท Certificate เท่านั้น"
@@ -153,7 +124,7 @@ function PendingApprovalsPage() {
       );
       setShowRejectPopup(false);
       setRejectionReason("");
-      await fetchData();
+      await fetchData(); // Refetch data
     } catch (err) {
       console.error("Batch review error:", err);
       toast.error(
@@ -169,9 +140,8 @@ function PendingApprovalsPage() {
     setReviewingSubmission(submission);
     setIndividualStatus(null);
     setIndividualReason("");
-    // **MODIFICATION**: Pre-fill hours with hours_requested (fallback to hours if needed)
     const requestedHours = submission.hours_requested ?? submission.hours ?? "";
-    setIndividualHours(String(requestedHours)); // Ensure it's a string for the input
+    setIndividualHours(String(requestedHours));
     setIsPreviewDrawerOpen(false);
   };
 
@@ -185,7 +155,6 @@ function PendingApprovalsPage() {
     const submissionId = reviewingSubmission.submission_id;
     const isCertificate = reviewingSubmission.type === "Certificate";
 
-    // --- Validation ---
     if (individualStatus === "rejected" && !individualReason.trim()) {
       toast.error("กรุณาระบุเหตุผลในการปฏิเสธ");
       return;
@@ -193,7 +162,6 @@ function PendingApprovalsPage() {
 
     let finalApprovedHours = null;
     if (individualStatus === "approved" && !isCertificate) {
-      // **MODIFICATION**: Ensure individualHours is a valid non-negative number
       if (
         individualHours === "" ||
         isNaN(parseInt(individualHours)) ||
@@ -204,9 +172,8 @@ function PendingApprovalsPage() {
         );
         return;
       }
-      finalApprovedHours = parseInt(individualHours); // Get the final hours from state
+      finalApprovedHours = parseInt(individualHours);
     }
-    // --- End Validation ---
 
     setLoadingIndividual(true);
     try {
@@ -216,9 +183,8 @@ function PendingApprovalsPage() {
           individualStatus === "rejected" ? individualReason : null,
       };
 
-      // **MODIFICATION**: Add the final approved hours to the payload if applicable
       if (individualStatus === "approved" && !isCertificate) {
-        payload.hours = finalApprovedHours; // Send the validated hours
+        payload.hours = finalApprovedHours;
       }
 
       await apiClient.put(`/submission/${submissionId}/review`, payload);
@@ -228,7 +194,7 @@ function PendingApprovalsPage() {
         } แล้ว`
       );
       closeIndividualReviewModal();
-      await fetchData();
+      await fetchData(); // Refetch data
     } catch (err) {
       console.error("Individual review error:", err);
       toast.error(
@@ -253,104 +219,116 @@ function PendingApprovalsPage() {
   };
 
   // --- Render Functions ---
-
   const renderPreviewDrawer = () => {
-    // ... (Drawer rendering logic remains the same)
     if (!isPreviewDrawerOpen || !previewFiles.length) return null;
-
     const currentFile = previewFiles[currentPreviewIndex];
     const fileSrc = `${import.meta.env.VITE_FILE_BASE_URL}${currentFile}`;
     const isImage = currentFile.match(/\.(jpg|jpeg|png|gif|webp)$/i);
     const isPdf = currentFile.match(/\.pdf$/i);
 
     return (
+      // เพิ่ม div นี้เข้ามาเพื่อทำเป็นฉากหลัง (Backdrop)
       <div
-        className={`fixed top-0 right-0 h-full w-full md:w-[40%] lg:w-[35%] bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${
-          isPreviewDrawerOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        className="fixed inset-0 bg-black bg-opacity-50 z-50" // ครอบคลุมเต็มจอ, สีดำโปร่งแสง, Z-index ควรสูงกว่าเนื้อหาหลัก แต่ต่ำกว่า popup อื่นๆ (Reject/Individual modal ใช้ z-[60])
+        onClick={closePreviewDrawer} // เมื่อคลิกที่ฉากหลัง ให้ปิด Drawer
       >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex justify-between items-center p-3 border-b sticky top-0 bg-white z-10">
-            <div className="flex gap-2 items-center">
-              <button
-                className="btn btn-xs btn-outline"
-                onClick={() =>
-                  setCurrentPreviewIndex((i) => (i > 0 ? i - 1 : i))
-                }
-                disabled={currentPreviewIndex === 0}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-sm">
-                {currentPreviewIndex + 1} / {previewFiles.length}
-              </span>
-              <button
-                className="btn btn-xs btn-outline"
-                onClick={() =>
-                  setCurrentPreviewIndex((i) =>
-                    i < previewFiles.length - 1 ? i + 1 : i
-                  )
-                }
-                disabled={currentPreviewIndex === previewFiles.length - 1}
-              >
-                <ChevronRight size={16} />
-              </button>
-              <a
-                href={fileSrc}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-ghost btn-xs ml-2"
-                title="เปิดในแท็บใหม่"
-              >
-                <ExternalLink size={16} />
-              </a>
-            </div>
-
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={closePreviewDrawer}
-            >
-              <X size={20} />
-            </button>
-          </div>
-          {/* Content */}
-          <div className="flex-1 overflow-auto p-4">
-            {isImage ? (
-              <img
-                src={fileSrc}
-                alt="preview"
-                className="w-full h-auto rounded object-contain"
-              />
-            ) : isPdf ? (
-              <iframe
-                src={fileSrc}
-                title="PDF preview"
-                className="w-full h-[90vh] border-none"
-              ></iframe>
-            ) : (
-              <div className="text-center p-5">
-                <p className="text-gray-600">
-                  ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้
-                </p>
+        {/* div เนื้อหา Drawer เดิม ถูกย้ายมาอยู่ข้างในนี้ */}
+        <div
+          className={`fixed top-0 right-0 h-full w-full md:w-[40%] lg:w-[35%] bg-white shadow-lg z-51 transform transition-transform duration-300 ease-in-out ${
+            // เพิ่ม Z-index ให้สูงกว่าฉากหลังเล็กน้อย
+            isPreviewDrawerOpen ? "translate-x-0" : "translate-x-full"
+          }`}
+          onClick={(e) => e.stopPropagation()} // สำคัญ: เมื่อคลิกที่เนื้อหา Drawer ให้หยุดการส่ง event ไปยัง Backdrop
+        >
+          {/* เนื้อหาภายใน Drawer เดิม */}
+          <div className="flex flex-col h-full">
+            <div className="flex justify-between items-center p-3 border-b sticky top-0 bg-white z-10">
+              <div className="flex gap-2 items-center">
+                {/* ปุ่มเปลี่ยนไฟล์ */}
+                <button
+                  className="btn btn-xs btn-outline"
+                  onClick={() =>
+                    setCurrentPreviewIndex((i) => (i > 0 ? i - 1 : i))
+                  }
+                  disabled={currentPreviewIndex === 0}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm">
+                  {currentPreviewIndex + 1} / {previewFiles.length}
+                </span>
+                <button
+                  className="btn btn-xs btn-outline"
+                  onClick={() =>
+                    setCurrentPreviewIndex((i) =>
+                      i < previewFiles.length - 1 ? i + 1 : i
+                    )
+                  }
+                  disabled={currentPreviewIndex === previewFiles.length - 1}
+                >
+                  <ChevronRight size={16} />
+                </button>
+                {/* ปุ่มเปิดในแท็บใหม่ */}
                 <a
                   href={fileSrc}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-link mt-2"
+                  className="btn btn-ghost btn-xs ml-2"
+                  title="เปิดในแท็บใหม่"
+                  // ไม่ต้องใส่ stopPropagation ตรงนี้ก็ได้ เพราะ click บน link มักจะไม่ propagate ขึ้นไปถึง backdrop อยู่แล้ว
                 >
-                  ดาวน์โหลดไฟล์เพื่อเปิดดู
+                  <ExternalLink size={16} />
                 </a>
               </div>
-            )}
+              {/* ปุ่มปิด Drawer */}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closePreviewDrawer();
+                }} // ใส่ stopPropagation ที่ปุ่มปิดด้วยก็ดี
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              {/* เนื้อหาแสดงไฟล์ (รูปภาพ/PDF) */}
+              {isImage ? (
+                <img
+                  src={fileSrc}
+                  alt="preview"
+                  className="w-full h-auto rounded object-contain"
+                />
+              ) : isPdf ? (
+                <iframe
+                  src={fileSrc}
+                  title="PDF preview"
+                  className="w-full h-[90vh] border-none"
+                ></iframe>
+              ) : (
+                <div className="text-center p-5">
+                  <p className="text-gray-600">
+                    ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้
+                  </p>
+                  <a
+                    href={fileSrc}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-link mt-2"
+                  >
+                    ดาวน์โหลดไฟล์เพื่อเปิดดู
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
+      // สิ้นสุด div Backdrop
     );
   };
 
   const renderBatchRejectPopup = () => {
-    // ... (Popup rendering logic remains the same)
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
@@ -392,7 +370,6 @@ function PendingApprovalsPage() {
   const renderIndividualReviewPopup = () => {
     if (!reviewingSubmission) return null;
     const isCert = reviewingSubmission.type === "Certificate";
-    // **MODIFICATION**: Get the originally requested hours for placeholder/label
     const requestedHoursDisplay =
       reviewingSubmission.hours_requested ?? reviewingSubmission.hours ?? "-";
 
@@ -410,7 +387,6 @@ function PendingApprovalsPage() {
             </button>
           </div>
 
-          {/* Submission Details */}
           <div className="mb-4 space-y-1 text-sm">
             <p>
               <strong>ผู้ส่ง:</strong> {reviewingSubmission.users?.name} (
@@ -433,7 +409,6 @@ function PendingApprovalsPage() {
                 <strong>รายละเอียด/หัวข้อ:</strong> {reviewingSubmission.topic}
               </p>
             )}
-            {/* **MODIFICATION**: Display hours_requested here */}
             <p>
               <strong>ชั่วโมงที่ยื่น:</strong> {requestedHoursDisplay}
             </p>
@@ -443,11 +418,10 @@ function PendingApprovalsPage() {
             </p>
           </div>
 
-          {/* Action Selection */}
           <div className="mb-4">
             <label className="label font-semibold">การดำเนินการ:</label>
             <div className="flex gap-4">
-              <button /* ... Approve Button ... */
+              <button
                 className={`btn btn-sm flex-1 ${
                   individualStatus === "approved"
                     ? "btn-success text-white"
@@ -458,7 +432,7 @@ function PendingApprovalsPage() {
               >
                 <CheckCircle2 size={16} /> อนุมัติ
               </button>
-              <button /* ... Reject Button ... */
+              <button
                 className={`btn btn-sm flex-1 ${
                   individualStatus === "rejected"
                     ? "btn-error text-white"
@@ -472,10 +446,8 @@ function PendingApprovalsPage() {
             </div>
           </div>
 
-          {/* Conditional Inputs */}
           {individualStatus === "approved" && !isCert && (
             <div className="mb-4">
-              {/* **MODIFICATION**: Updated label and placeholder */}
               <label className="label font-semibold" htmlFor="approvedHours">
                 จำนวนชั่วโมงที่อนุมัติ:
                 <span className="text-xs font-normal text-gray-500 ml-2">
@@ -487,9 +459,9 @@ function PendingApprovalsPage() {
                 type="number"
                 min="0"
                 className="input input-bordered w-full"
-                value={individualHours} // State holds the value to be approved
+                value={individualHours}
                 onChange={(e) => setIndividualHours(e.target.value)}
-                placeholder={`ระบุจำนวนชั่วโมง (ค่าเดิม: ${requestedHoursDisplay})`} // Informative placeholder
+                placeholder={`ระบุจำนวนชั่วโมง (ค่าเดิม: ${requestedHoursDisplay})`}
                 disabled={loadingIndividual}
                 required
               />
@@ -500,7 +472,7 @@ function PendingApprovalsPage() {
               <label className="label font-semibold" htmlFor="rejectionReason">
                 เหตุผลในการปฏิเสธ:
               </label>
-              <textarea /* ... Rejection Reason ... */
+              <textarea
                 id="rejectionReason"
                 className="textarea textarea-bordered w-full"
                 rows={3}
@@ -513,7 +485,6 @@ function PendingApprovalsPage() {
             </div>
           )}
 
-          {/* Modal Footer Buttons */}
           <div className="mt-6 pt-4 border-t flex justify-end gap-2">
             <button
               className="btn btn-ghost"
@@ -525,7 +496,6 @@ function PendingApprovalsPage() {
             <button
               className="btn btn-primary"
               onClick={handleIndividualReview}
-              // **MODIFICATION**: Simplified disabled logic (validation happens inside handler now)
               disabled={!individualStatus || loadingIndividual}
             >
               {loadingIndividual ? (
@@ -547,7 +517,7 @@ function PendingApprovalsPage() {
   const showActionsColumn = filter !== "Certificate";
 
   const calculateColspan = () => {
-    let count = 3; // Base: Checkbox, Name, Year, Files
+    let count = 3;
     if (showTypeColumn) count++;
     if (showTopicColumn) count++;
     if (showHoursColumn) count++;
@@ -561,30 +531,38 @@ function PendingApprovalsPage() {
     showActionsColumn,
   ]);
 
+  // --- "Select All" Checkbox Logic ---
+  const certificateSubmissionsOnPage = useMemo(
+    () => submissions.filter((s) => s.type === "Certificate"),
+    [submissions]
+  );
+
   // --- Main Render ---
   return (
     <div className="flex h-screen relative overflow-hidden">
       <Toaster position="top-center" reverseOrder={false} />
-      {/* Main Content Area */}
       <div className="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto overflow-x-hidden">
-        {/* ... (Header, Filters, Search, Tabs remain the same) ... */}
         <h1 className="text-2xl font-bold">รายการคำขอที่รออนุมัติ</h1>
 
         {/* Filters and Search */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center flex-wrap gap-3 md:gap-4 mb-4 p-4 bg-base-200 rounded-lg">
-          {/* Search Input */}
           <input
             type="text"
             className="input input-bordered input-sm focus:outline-none focus:ring-0 focus:border-gray-300 w-full sm:w-auto flex-grow"
             placeholder="ค้นหา ชื่อ รหัส สาขา หัวข้อ หมวดหมู่..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1); // << NEW: Reset page on search change
+            }}
           />
-          {/* Sort Select */}
           <select
             className="select select-sm select-bordered focus:outline-none focus:ring-0 focus:border-gray-300 w-full sm:w-auto"
             value={sortOption}
-            onChange={(e) => setSortOption(e.target.value)}
+            onChange={(e) => {
+              setSortOption(e.target.value);
+              setCurrentPage(1); // << NEW: Reset page on sort change
+            }}
           >
             <option value="latest">ใหม่สุดก่อน</option>
             <option value="oldest">เก่าสุดก่อน</option>
@@ -592,7 +570,6 @@ function PendingApprovalsPage() {
             <option value="user">ผู้ส่ง</option>
           </select>
 
-          {/* Tabs */}
           <div className="tabs tabs-boxed bg-base-100 flex-wrap">
             {categories.map((cat) => (
               <button
@@ -604,7 +581,8 @@ function PendingApprovalsPage() {
                   if (filter !== cat) {
                     setFilter(cat);
                     setCurrentPage(1);
-                    setSearchQuery("");
+                    setSearchQuery(""); // Reset search on filter change
+                    // setSortOption("latest"); // Optionally reset sort too
                   }
                 }}
               >
@@ -625,7 +603,6 @@ function PendingApprovalsPage() {
         {/* Batch Action Buttons */}
         {selectedIds.length > 0 && filter === "Certificate" && (
           <div className="flex gap-3 items-center mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            {/* ... batch buttons ... */}
             <span className="text-sm font-medium text-blue-700">
               เลือก {selectedIds.length} รายการ
             </span>
@@ -672,166 +649,156 @@ function PendingApprovalsPage() {
         {/* Table */}
         <div className="overflow-x-auto shadow-md rounded-lg">
           <table className="table table-zebra w-full text-sm">
-            {/* Table Head */}
             <thead className="bg-base-300">
               <tr>
                 <th className="p-2 w-10">
-                  {/* Checkbox Column Header */}
-                  {filter === "Certificate" && filtered.length > 0 && (
-                    <input /* ... checkbox props ... */
-                      type="checkbox"
-                      className="checkbox checkbox-sm"
-                      checked={
-                        selectedIds.length ===
-                          filtered.filter((s) => s.type === "Certificate")
-                            .length && selectedIds.length > 0
-                      }
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setSelectedIds(
-                            filtered
-                              .filter((s) => s.type === "Certificate")
-                              .map((s) => s.submission_id)
-                          );
-                        } else {
-                          setSelectedIds([]);
+                  {filter === "Certificate" &&
+                    certificateSubmissionsOnPage.length > 0 && ( // << UPDATED: Use certificateSubmissionsOnPage
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        checked={
+                          // Check if all certificate items on the current page are selected
+                          certificateSubmissionsOnPage.length > 0 &&
+                          selectedIds.length ===
+                            certificateSubmissionsOnPage.length &&
+                          certificateSubmissionsOnPage.every((s) =>
+                            selectedIds.includes(s.submission_id)
+                          )
                         }
-                      }}
-                      title="เลือกทั้งหมด (เฉพาะ Certificate)"
-                    />
-                  )}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedIds(
+                              certificateSubmissionsOnPage.map(
+                                // << UPDATED
+                                (s) => s.submission_id
+                              )
+                            );
+                          } else {
+                            setSelectedIds([]);
+                          }
+                        }}
+                        title="เลือกทั้งหมด (เฉพาะ Certificate ในหน้านี้)"
+                      />
+                    )}
                 </th>
-                {/* Ensure no extra space/newline before this th */}
                 <th className="p-2 min-w-[180px]">ชื่อ-ข้อมูลผู้ส่ง</th>
-                {/* Ensure no extra space/newline around conditional th */}
                 {showTypeColumn && <th className="p-2">ประเภท/หมวดหมู่</th>}
                 {showTopicColumn && (
                   <th className="p-2 max-w-[200px]">หัวข้อ/รายละเอียด</th>
                 )}
                 {showHoursColumn && <th className="p-2">ชม.ที่ยื่น</th>}
-                {/* Ensure no extra space/newline before this th */}
                 <th className="p-2">ปีการศึกษา</th>
-                {/* Ensure no extra space/newline before this th */}
                 <th className="p-2">ไฟล์แนบ</th>
-                {/* Ensure no extra space/newline around conditional th */}
                 {showActionsColumn && <th className="p-2">ดำเนินการ</th>}
               </tr>
             </thead>
-            {/* End Table Head */}
             <tbody>
-              {filtered.length === 0 && !loadingBatch && !loadingIndividual && (
-                <tr>
-                  <td
-                    colSpan={tableColspan}
-                    className="text-center p-5 text-gray-500"
-                  >
-                    ไม่พบข้อมูลที่รออนุมัติตามเงื่อนไขที่เลือก
-                  </td>
-                </tr>
-              )}
-              {filtered.map((s) => (
-                <tr key={s.submission_id} className="hover">
-                  <td className="p-2">
-                    {" "}
-                    {/* Checkbox */}
-                    {s.type === "Certificate" ? (
-                      <input /* ... row checkbox ... */
-                        type="checkbox"
-                        className="checkbox checkbox-sm"
-                        checked={selectedIds.includes(s.submission_id)}
-                        onChange={() => toggleSelect(s.submission_id)}
-                        disabled={loadingBatch}
-                      />
-                    ) : (
-                      <span className="text-gray-300">-</span>
-                    )}
-                  </td>
-                  <td className="p-2">
-                    {" "}
-                    {/* User Info */}
-                    <div className="font-medium">{s.users?.name || "-"}</div>
-                    <div className="text-xs text-gray-500 leading-tight">
-                      <div>{s.users?.username || "-"}</div>
-                      <div>{s.users?.faculty || "-"}</div>
-                      <div>{s.users?.major || "-"}</div>
-                    </div>
-                  </td>
-                  {showTypeColumn && (
-                    <td className="p-2">
-                      {" "}
-                      {/* Type/Category */}
-                      {s.type === "Certificate"
-                        ? s.certificate_type?.category || (
-                            <span className="text-gray-400 italic">
-                              ไม่มีหมวดหมู่
-                            </span>
-                          )
-                        : s.type}
-                    </td>
-                  )}
-                  {showTopicColumn && (
+              {submissions.length === 0 &&
+                !loadingBatch &&
+                !loadingIndividual && ( // << UPDATED: Use submissions
+                  <tr>
                     <td
-                      className="p-2 max-w-[200px] truncate"
-                      title={
-                        s.certificate_type?.certificate_name || s.topic || "-"
-                      }
+                      colSpan={tableColspan}
+                      className="text-center p-5 text-gray-500"
                     >
-                      {" "}
-                      {/* Topic */}
-                      {s.certificate_type?.certificate_name || s.topic || "-"}
+                      ไม่พบข้อมูลที่รออนุมัติตามเงื่อนไขที่เลือก
                     </td>
-                  )}
-                  {/* **MODIFICATION**: Display hours_requested in the table */}
-                  {showHoursColumn && (
+                  </tr>
+                )}
+              {submissions.map(
+                (
+                  s // << UPDATED: Use submissions
+                ) => (
+                  <tr key={s.submission_id} className="hover">
                     <td className="p-2">
-                      {s.hours_requested ?? s.hours ?? "-"}{" "}
-                      {/* Prioritize hours_requested */}
-                    </td>
-                  )}
-                  <td className="p-2">{s.academic_years?.year_name || "-"}</td>{" "}
-                  {/* Academic Year */}
-                  <td className="p-2">
-                    {" "}
-                    {/* Files */}
-                    {s.submission_files?.length > 0 ? (
-                      <button
-                        className="btn btn-xs btn-outline px-2"
-                        onClick={() => openPreviewDrawer(s.submission_files)}
-                        title={`ดูไฟล์ (${s.submission_files.length})`}
-                      >
-                        <Eye size={14} /> ({s.submission_files.length})
-                      </button>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
-                  {showActionsColumn && (
-                    <td className="p-2">
-                      {" "}
-                      {/* Actions */}
-                      {s.type !== "Certificate" ? (
-                        <button
-                          className="btn btn-xs btn-outline btn-info"
-                          onClick={() => openIndividualReviewModal(s)}
-                          disabled={loadingIndividual || loadingBatch}
-                          title="ตรวจสอบรายการนี้"
-                        >
-                          <Edit size={14} /> ตรวจสอบ
-                        </button>
+                      {s.type === "Certificate" ? (
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-sm"
+                          checked={selectedIds.includes(s.submission_id)}
+                          onChange={() => toggleSelect(s.submission_id)}
+                          disabled={loadingBatch}
+                        />
                       ) : (
-                        <span className="text-xs text-gray-400 italic">-</span>
+                        <span className="text-gray-300">-</span>
                       )}
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td className="p-2">
+                      <div className="font-medium">{s.users?.name || "-"}</div>
+                      <div className="text-xs text-gray-500 leading-tight">
+                        <div>{s.users?.username || "-"}</div>
+                        <div>{s.users?.faculty || "-"}</div>
+                        <div>{s.users?.major || "-"}</div>
+                      </div>
+                    </td>
+                    {showTypeColumn && (
+                      <td className="p-2">
+                        {s.type === "Certificate"
+                          ? s.certificate_type?.category || (
+                              <span className="text-gray-400 italic">
+                                ไม่มีหมวดหมู่
+                              </span>
+                            )
+                          : s.type}
+                      </td>
+                    )}
+                    {showTopicColumn && (
+                      <td
+                        className="p-2 max-w-[200px] truncate"
+                        title={
+                          s.certificate_type?.certificate_name || s.topic || "-"
+                        }
+                      >
+                        {s.certificate_type?.certificate_name || s.topic || "-"}
+                      </td>
+                    )}
+                    {showHoursColumn && (
+                      <td className="p-2">
+                        {s.hours_requested ?? s.hours ?? "-"}
+                      </td>
+                    )}
+                    <td className="p-2">
+                      {s.academic_years?.year_name || "-"}
+                    </td>
+                    <td className="p-2">
+                      {s.submission_files?.length > 0 ? (
+                        <button
+                          className="btn btn-xs btn-outline px-2"
+                          onClick={() => openPreviewDrawer(s.submission_files)}
+                          title={`ดูไฟล์ (${s.submission_files.length})`}
+                        >
+                          <Eye size={14} /> ({s.submission_files.length})
+                        </button>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    {showActionsColumn && (
+                      <td className="p-2">
+                        {s.type !== "Certificate" ? (
+                          <button
+                            className="btn btn-xs btn-outline btn-info"
+                            onClick={() => openIndividualReviewModal(s)}
+                            disabled={loadingIndividual || loadingBatch}
+                            title="ตรวจสอบรายการนี้"
+                          >
+                            <Edit size={14} /> ตรวจสอบ
+                          </button>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">
+                            -
+                          </span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                )
+              )}
             </tbody>
             <tfoot>
               <tr>
                 <td colSpan={tableColspan}>
-                  {" "}
-                  {/* Pagination */}
-                  {/* ... (Pagination remains the same) ... */}
                   <div className="flex justify-center items-center gap-3 my-4">
                     <button
                       className="btn btn-sm btn-outline"
@@ -862,17 +829,8 @@ function PendingApprovalsPage() {
             </tfoot>
           </table>
         </div>
-      </div>{" "}
-      {/* End Main Content Area */}
-      {/* Side Preview Drawer */}
-      {renderPreviewDrawer()}
-      {isPreviewDrawerOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-25 z-40"
-          onClick={closePreviewDrawer}
-        ></div>
-      )}
-      {/* Modals */}
+      </div>
+      {isPreviewDrawerOpen && renderPreviewDrawer()}
       {showRejectPopup && renderBatchRejectPopup()}
       {reviewingSubmission && renderIndividualReviewPopup()}
     </div>
