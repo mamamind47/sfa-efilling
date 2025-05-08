@@ -16,6 +16,7 @@ import {
   SlidersHorizontal,
   Upload,
   FileUp,
+  Hourglass,
 } from "lucide-react";
 
 const DashboardPage = () => <div className="p-4">Dashboard Page</div>;
@@ -31,6 +32,7 @@ import UserHomeSection from "../pages/app/HomeUserSection.jsx";
 import SubmitNSFPage from "../pages/app/SubmitNSFPage.jsx";
 import SubmitAOMYoungPage from "../pages/app/SubmitAOMYoungPage.jsx";
 import AdminUserStatsPage from "../pages/app/AdminUserStatsPage.jsx";
+import UserSubmissionStatusPage from "../pages/app/UserSubmissionStatusPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -48,6 +50,12 @@ const menuItemsData = (role) =>
       path: "/app/submit/select",
       icon: FileText,
       text: "ยื่นใบรับรอง",
+      roles: ["student"],
+    },
+    {
+      path: "/app/submission-status",
+      icon: Hourglass,
+      text: "ตรวจสอบสถานะ",
       roles: ["student"],
     },
     {
@@ -160,6 +168,10 @@ function ProtectedLayout() {
                   path="submit/:academic_year_id/aom-young"
                   element={<SubmitAOMYoungPage />}
                 />
+                <Route
+                  path="submission-status"
+                  element={<UserSubmissionStatusPage />}
+                  />
               </>
             )}
 

@@ -68,6 +68,11 @@ exports.getUserSubmissions = async (req, res) => {
           orderBy: { changed_at: "desc" },
           take: 1,
         },
+        academic_years: {
+          select: {
+            year_name: true,
+          },
+        },
       },
     });
     res.json(submissions);

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Upload,
   FileUp,
+  Hourglass,
 } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
 
@@ -34,6 +35,12 @@ const menuItemsData = (role) =>
       text: "ยื่นใบรับรอง",
       roles: ["student"],
     },
+  {
+      path: "/app/submission-status",
+      icon: Hourglass,
+      text: "ตรวจสอบสถานะ",
+      roles: ["student"],
+  },
     {
       icon: SlidersHorizontal,
       text: "จัดการ",
