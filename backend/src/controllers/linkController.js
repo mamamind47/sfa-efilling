@@ -156,7 +156,7 @@ exports.uploadScholarshipApplied = async (req, res) => {
 
     const result = await prisma.linked_scholarship.createMany({
       data: dataToInsert,
-      skipDuplicates: true, // ✅ ข้ามแถวที่ซ้ำ (มี composite key เดิมอยู่แล้ว)
+      skipDuplicates: true,
     });
 
     res.json({

@@ -617,3 +617,36 @@ exports.getUserStatisticsExport = async (req, res) => {
     }
   }
 };
+
+exports.updateScholarshipStatus = async (req, res) => {
+  try {
+    const { student_id, academic_year, new_type } = req.body;
+
+    if (!student_id || !academic_year || !new_type) {
+      return res.status(400).json({ error: "Missing required fields." });
+    }
+
+    // Upsert (insert if not exists, else update)
+    const updated = await prisma.linked_scholarship.upsert({
+      where: {
+        student_id_academic_year: {
+          student_id,
+          academic_year,
+        },
+      },
+      update: {
+        type: new_type,
+      },
+      create: {
+        student_id,
+        academic_year,
+        type: new_type,
+      },
+    });
+
+    res.status(200).json({ success: true, data: updated });
+  } catch (error) {
+    console.error("Error updating scholarship status:", error);
+    res.status(500).json({ error: "Failed to update scholarship status." });
+  }
+};

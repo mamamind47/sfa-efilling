@@ -653,12 +653,11 @@ function PendingApprovalsPage() {
               <tr>
                 <th className="p-2 w-10">
                   {filter === "Certificate" &&
-                    certificateSubmissionsOnPage.length > 0 && ( // << UPDATED: Use certificateSubmissionsOnPage
+                    certificateSubmissionsOnPage.length > 0 && (
                       <input
                         type="checkbox"
                         className="checkbox checkbox-sm"
                         checked={
-                          // Check if all certificate items on the current page are selected
                           certificateSubmissionsOnPage.length > 0 &&
                           selectedIds.length ===
                             certificateSubmissionsOnPage.length &&
@@ -670,7 +669,6 @@ function PendingApprovalsPage() {
                           if (e.target.checked) {
                             setSelectedIds(
                               certificateSubmissionsOnPage.map(
-                                // << UPDATED
                                 (s) => s.submission_id
                               )
                             );
@@ -687,16 +685,20 @@ function PendingApprovalsPage() {
                 {showTopicColumn && (
                   <th className="p-2 max-w-[200px]">หัวข้อ/รายละเอียด</th>
                 )}
-                {showHoursColumn && <th className="p-2">ชม.ที่ยื่น</th>}
-                <th className="p-2">ปีการศึกษา</th>
+                <th className="p-2">ชั่วโมง</th>
+                {filter !== "Certificate" && (
+                  <th className="p-2">ปีการศึกษา</th>
+                )}
+                <th className="p-2">ส่งเมื่อ</th>
                 <th className="p-2">ไฟล์แนบ</th>
                 {showActionsColumn && <th className="p-2">ดำเนินการ</th>}
               </tr>
             </thead>
+
             <tbody>
               {submissions.length === 0 &&
                 !loadingBatch &&
-                !loadingIndividual && ( // << UPDATED: Use submissions
+                !loadingIndividual && (
                   <tr>
                     <td
                       colSpan={tableColspan}
@@ -706,96 +708,103 @@ function PendingApprovalsPage() {
                     </td>
                   </tr>
                 )}
-              {submissions.map(
-                (
-                  s // << UPDATED: Use submissions
-                ) => (
-                  <tr key={s.submission_id} className="hover">
+              {submissions.map((s) => (
+                <tr key={s.submission_id} className="hover">
+                  <td className="p-2">
+                    {s.type === "Certificate" ? (
+                      <input
+                        type="checkbox"
+                        className="checkbox checkbox-sm"
+                        checked={selectedIds.includes(s.submission_id)}
+                        onChange={() => toggleSelect(s.submission_id)}
+                        disabled={loadingBatch}
+                      />
+                    ) : (
+                      <span className="text-gray-300">-</span>
+                    )}
+                  </td>
+                  <td className="p-2">
+                    <div className="font-medium">{s.users?.name || "-"}</div>
+                    <div className="text-xs text-gray-500 leading-tight">
+                      <div>{s.users?.username || "-"}</div>
+                      <div>{s.users?.faculty || "-"}</div>
+                      <div>{s.users?.major || "-"}</div>
+                    </div>
+                  </td>
+                  {showTypeColumn && (
                     <td className="p-2">
-                      {s.type === "Certificate" ? (
-                        <input
-                          type="checkbox"
-                          className="checkbox checkbox-sm"
-                          checked={selectedIds.includes(s.submission_id)}
-                          onChange={() => toggleSelect(s.submission_id)}
-                          disabled={loadingBatch}
-                        />
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
+                      {s.type === "Certificate"
+                        ? s.certificate_type?.category || (
+                            <span className="text-gray-400 italic">
+                              ไม่มีหมวดหมู่
+                            </span>
+                          )
+                        : s.type}
                     </td>
-                    <td className="p-2">
-                      <div className="font-medium">{s.users?.name || "-"}</div>
-                      <div className="text-xs text-gray-500 leading-tight">
-                        <div>{s.users?.username || "-"}</div>
-                        <div>{s.users?.faculty || "-"}</div>
-                        <div>{s.users?.major || "-"}</div>
-                      </div>
+                  )}
+                  {showTopicColumn && (
+                    <td
+                      className="p-2 max-w-[200px] truncate"
+                      title={
+                        s.certificate_type?.certificate_name || s.topic || "-"
+                      }
+                    >
+                      {s.certificate_type?.certificate_name || s.topic || "-"}
                     </td>
-                    {showTypeColumn && (
-                      <td className="p-2">
-                        {s.type === "Certificate"
-                          ? s.certificate_type?.category || (
-                              <span className="text-gray-400 italic">
-                                ไม่มีหมวดหมู่
-                              </span>
-                            )
-                          : s.type}
-                      </td>
-                    )}
-                    {showTopicColumn && (
-                      <td
-                        className="p-2 max-w-[200px] truncate"
-                        title={
-                          s.certificate_type?.certificate_name || s.topic || "-"
-                        }
-                      >
-                        {s.certificate_type?.certificate_name || s.topic || "-"}
-                      </td>
-                    )}
-                    {showHoursColumn && (
-                      <td className="p-2">
-                        {s.hours_requested ?? s.hours ?? "-"}
-                      </td>
-                    )}
+                  )}
+                  <td className="p-2">
+                    {s.type === "Certificate"
+                      ? s.certificate_type?.hours ?? "-"
+                      : s.hours_requested ?? s.hours ?? "-"}
+                  </td>
+                  {s.type !== "Certificate" && (
                     <td className="p-2">
                       {s.academic_years?.year_name || "-"}
                     </td>
+                  )}
+                  <td className="p-2">
+                    {new Date(s.created_at).toLocaleString("th-TH", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                    })}
+                  </td>
+                  <td className="p-2">
+                    {s.submission_files?.length > 0 ? (
+                      <button
+                        className="btn btn-xs btn-outline px-2"
+                        onClick={() => openPreviewDrawer(s.submission_files)}
+                        title={`ดูไฟล์ (${s.submission_files.length})`}
+                      >
+                        <Eye size={14} /> ({s.submission_files.length})
+                      </button>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
+                  {showActionsColumn && (
                     <td className="p-2">
-                      {s.submission_files?.length > 0 ? (
+                      {s.type !== "Certificate" ? (
                         <button
-                          className="btn btn-xs btn-outline px-2"
-                          onClick={() => openPreviewDrawer(s.submission_files)}
-                          title={`ดูไฟล์ (${s.submission_files.length})`}
+                          className="btn btn-xs btn-outline btn-info"
+                          onClick={() => openIndividualReviewModal(s)}
+                          disabled={loadingIndividual || loadingBatch}
+                          title="ตรวจสอบรายการนี้"
                         >
-                          <Eye size={14} /> ({s.submission_files.length})
+                          <Edit size={14} /> ตรวจสอบ
                         </button>
                       ) : (
-                        "-"
+                        <span className="text-xs text-gray-400 italic">-</span>
                       )}
                     </td>
-                    {showActionsColumn && (
-                      <td className="p-2">
-                        {s.type !== "Certificate" ? (
-                          <button
-                            className="btn btn-xs btn-outline btn-info"
-                            onClick={() => openIndividualReviewModal(s)}
-                            disabled={loadingIndividual || loadingBatch}
-                            title="ตรวจสอบรายการนี้"
-                          >
-                            <Edit size={14} /> ตรวจสอบ
-                          </button>
-                        ) : (
-                          <span className="text-xs text-gray-400 italic">
-                            -
-                          </span>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                )
-              )}
+                  )}
+                </tr>
+              ))}
             </tbody>
+
             <tfoot>
               <tr>
                 <td colSpan={tableColspan}>

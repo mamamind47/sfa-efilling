@@ -6,3 +6,15 @@
 @tailwind utilities;
 
 /* CSS อื่นๆ ของคุณ */
+input:focus,
+select:focus,
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: light;
+    }
+}

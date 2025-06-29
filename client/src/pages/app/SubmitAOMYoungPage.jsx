@@ -5,6 +5,7 @@ import { UploadCloud, CheckCircle2, X, RotateCcw } from "lucide-react";
 import apiClient from "../../api/axiosConfig";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
+import toast from "react-hot-toast";
 dayjs.locale("th");
 
 function SubmitAOMYoungPage() {
@@ -19,6 +20,8 @@ function SubmitAOMYoungPage() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
   const [submittedData, setSubmittedData] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [academicPeriod, setAcademicPeriod] = useState(null);
+
 
   useEffect(() => {
     const checkExistingSubmission = async () => {
@@ -40,11 +43,50 @@ function SubmitAOMYoungPage() {
     checkExistingSubmission();
   }, [academic_year_id]);
 
-  const onDrop = (files) => {
-    if (agreed) {
-      setAcceptedFiles((prev) => [...prev, ...files]);
+  useEffect(() => {
+    const fetchAcademicPeriod = async () => {
+      try {
+        const res = await apiClient.get("/academic");
+        const year = res.data.find(
+          (ay) => ay.academic_year_id === academic_year_id
+        );
+        if (year) {
+          setAcademicPeriod({
+            start: dayjs(year.start_date).format("D MMMM BBBB"),
+            end: dayjs(year.end_date).format("D MMMM BBBB"),
+          });
+        }
+      } catch (err) {
+        console.error("Error loading academic year dates", err);
+      }
+    };
+    fetchAcademicPeriod();
+  }, [academic_year_id]);
+
+
+const onDrop = (files) => {
+  if (!agreed) return;
+
+  const maxFiles = 10;
+  const maxSizeMB = 10;
+  const newFiles = [];
+
+  if (acceptedFiles.length + files.length > maxFiles) {
+    toast.error("อัปโหลดได้สูงสุดไม่เกิน 10 ไฟล์");
+    return;
+  }
+
+  for (let file of files) {
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      toast.error(`ไฟล์ ${file.name} มีขนาดเกิน 10MB`);
+      return;
     }
-  };
+    newFiles.push(file);
+  }
+
+  setAcceptedFiles((prev) => [...prev, ...newFiles]);
+};
+
 
   const removeFile = (index) => {
     setAcceptedFiles((prev) => prev.filter((_, i) => i !== index));
@@ -235,6 +277,12 @@ function SubmitAOMYoungPage() {
         หากมีการอนุมัติแล้วจะไม่สามารถส่งเพิ่มได้อีก
         <br />
         <strong>วิธีการคำนวณชั่วโมง:</strong> ลงทุน 1 ครั้ง เท่ากับ 1 ชั่วโมง
+        {academicPeriod && (
+          <p className="text-red-600 mt-2">
+            * กิจกรรมที่ส่งต้องอยู่ในช่วงวันที่ {academicPeriod.start} ถึง{" "}
+            {academicPeriod.end}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center space-x-2">

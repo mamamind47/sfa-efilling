@@ -2,6 +2,7 @@
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
+import { Toaster } from "react-hot-toast";
 
 // Import Components และ Pages (สร้างไฟล์เหล่านี้ด้วย .jsx)
 import Footer from "./components/Footer.jsx";
@@ -39,6 +40,7 @@ function App() {
     // ถ้ายังไม่ได้ย้ายไป main.jsx ให้ย้ายไปนะครับ ตามตัวอย่างก่อนหน้า
     // ถ้าอยู่ใน main.jsx แล้ว เอา <AuthProvider> ตรงนี้ออกได้
     <AuthProvider>
+      <Toaster position="top-right" />
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow">
           <Routes>

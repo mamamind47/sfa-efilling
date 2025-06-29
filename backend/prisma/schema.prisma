@@ -111,7 +111,7 @@ model linked_scholarship {
   academic_year   String
   type            String
 
-  @@unique([student_id, academic_year, type], name: "unique_scholarship")
+  @@unique([student_id, academic_year], name: "student_id_academic_year")
 }
 
 enum submissions_status {

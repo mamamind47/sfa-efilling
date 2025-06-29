@@ -6,6 +6,7 @@ import { Upload, Search, Eye, X, RotateCcw } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import ModalUploadConfirm from "../../components/ModalUploadConfirm";
+import exSET from "../../assets/SET.jpg";
 dayjs.locale("th");
 
 function SubmitCertificatePage() {
@@ -21,6 +22,9 @@ function SubmitCertificatePage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadTarget, setUploadTarget] = useState(null);
   const [previewFiles, setPreviewFiles] = useState([]);
+  const [academicPeriod, setAcademicPeriod] = useState(null);
+  const [showSetModal, setShowSetModal] = useState(false);
+
 
   const fetchSubmissions = async () => {
     try {
@@ -62,6 +66,27 @@ function SubmitCertificatePage() {
     );
     setFilteredTypes(filtered);
   }, [searchQuery, certificateTypes]);
+
+  useEffect(() => {
+    const fetchAcademicPeriod = async () => {
+      try {
+        const res = await apiClient.get("/academic");
+        const year = res.data.find(
+          (ay) => ay.academic_year_id === academic_year_id
+        );
+        if (year) {
+          setAcademicPeriod({
+            start: dayjs(year.start_date).format("D MMMM BBBB"),
+            end: dayjs(year.end_date).format("D MMMM BBBB"),
+          });
+        }
+      } catch (err) {
+        console.error("Error loading academic year dates", err);
+      }
+    };
+    fetchAcademicPeriod();
+  }, [academic_year_id]);
+
 
   const handleUpload = (certificate_type_id) => {
     setUploadTarget(certificate_type_id);
@@ -187,9 +212,32 @@ function SubmitCertificatePage() {
     );
   };
 
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <h1 className="text-2xl font-bold">รายการหัวข้อใบรับรองทั้งหมด</h1>
+
+      <div className="bg-yellow-50 border border-yellow-300 text-yellow-800 p-4 rounded text-sm space-y-2">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <span>
+            ใบรับรองของ <strong>SET e-Learning</strong> จะต้องมีโลโก้ของ{" "}
+            <strong>กยศ.</strong> เท่านั้น
+          </span>
+          <button
+            onClick={() => setShowSetModal(true)}
+            className="btn btn-xs btn-outline text-yellow-700 border-yellow-500 hover:bg-yellow-100 w-max"
+          >
+            ดูตัวอย่าง
+          </button>
+        </div>
+
+        {academicPeriod && (
+          <p className="text-red-600">
+            * กิจกรรมที่ส่งต้องอยู่ในช่วงวันที่ {academicPeriod.start} ถึง{" "}
+            {academicPeriod.end}
+          </p>
+        )}
+      </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
@@ -287,6 +335,35 @@ function SubmitCertificatePage() {
 
       {statusPopup && renderStatusStep(statusPopup)}
 
+      {showSetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-full max-w-md shadow-lg relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              onClick={() => setShowSetModal(false)}
+            >
+              <X size={20} />
+            </button>
+            <h3 className="text-lg font-semibold">
+              ตัวอย่างใบรับรอง SET ที่ถูกต้อง
+            </h3>
+            <img
+              src={exSET}
+              alt="ตัวอย่างใบรับรอง"
+              className="w-full mt-4 rounded border"
+            />
+            <div className="text-right mt-4">
+              <button
+                className="btn btn-sm btn-outline"
+                onClick={() => setShowSetModal(false)}
+              >
+                ปิด
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <ModalUploadConfirm
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
@@ -298,6 +375,7 @@ function SubmitCertificatePage() {
       />
     </div>
   );
+  
 }
 
 export default SubmitCertificatePage;

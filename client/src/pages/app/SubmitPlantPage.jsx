@@ -1,21 +1,14 @@
-// src/pages/app/SubmitBloodDonatePage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
-import {
-  UploadCloud,
-  FileText,
-  CheckCircle2,
-  X,
-  RotateCcw,
-} from "lucide-react";
+import { UploadCloud, CheckCircle2, X, RotateCcw } from "lucide-react";
 import apiClient from "../../api/axiosConfig";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import toast from "react-hot-toast";
 dayjs.locale("th");
 
-function SubmitBloodDonatePage() {
+function SubmitPlantPage() {
   const { academic_year_id } = useParams();
   const navigate = useNavigate();
   const fileInputRef = useRef();
@@ -36,7 +29,7 @@ function SubmitBloodDonatePage() {
         const res = await apiClient.get("/submission");
         const existing = res.data.find(
           (item) =>
-            item.type === "BloodDonate" &&
+            item.type === "ต้นไม้ล้านต้น ล้านความดี" &&
             item.academic_year_id === academic_year_id
         );
         if (existing) {
@@ -114,7 +107,7 @@ const onDrop = (files) => {
 
     const formData = new FormData();
     formData.append("academic_year_id", academic_year_id);
-    formData.append("type", "BloodDonate");
+    formData.append("type", "ต้นไม้ล้านต้น ล้านความดี");
     formData.append("hours", parseInt(hours));
     acceptedFiles.forEach((file) => formData.append("files", file));
 
@@ -161,7 +154,6 @@ const onDrop = (files) => {
     return (
       <div className="mt-6 text-sm text-center space-y-4">
         <h3 className="font-semibold text-base text-center">สถานะคำขอ</h3>
-
         <div className="flex items-center justify-center">
           <div className="flex flex-col items-center">
             <div className={stepClass(1)}>1</div>
@@ -202,6 +194,8 @@ const onDrop = (files) => {
           </p>
           {submittedData?.status_logs?.[0]?.status === "rejected" && (
             <div className="text-center mt-6 space-y-3">
+              {" "}
+              {/* ปรับ layout ให้เหมือนกัน */}
               <div className="border border-red-400 bg-red-50 text-red-600 p-3 rounded">
                 <p>
                   <span className="font-semibold">เหตุผลที่ปฏิเสธ:</span>{" "}
@@ -214,12 +208,11 @@ const onDrop = (files) => {
                   setAlreadySubmitted(false);
                   setAcceptedFiles([]);
                   setShowSuccess(false);
+                  setHours(0);
+                  setAgreed(false);
                 }}
               >
-                <RotateCcw
-                  size={16}
-                  className="mr-1 group-hover:animate-spin transition-transform"
-                />
+                <RotateCcw size={16} className="mr-1" />
                 อัปโหลดใหม่
               </button>
             </div>
@@ -250,7 +243,7 @@ const onDrop = (files) => {
     return (
       <div className="max-w-xl mx-auto p-6 space-y-6 text-center">
         <h2 className="text-xl font-semibold text-red-600">
-          คุณได้ส่งคำขอสำหรับการบริจาคโลหิตในปีการศึกษานี้แล้ว
+          คุณได้ส่งคำขอสำหรับโครงการ ต้นไม้ล้านต้น ล้านความดี ในปีการศึกษานี้แล้ว
         </h2>
         <p className="text-gray-600">ระบบอนุญาตให้ส่งได้เพียงครั้งเดียวต่อปี</p>
         <button
@@ -268,17 +261,22 @@ const onDrop = (files) => {
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold text-center">
-        อัปโหลดใบรับรองการบริจาคโลหิต
+        อัปโหลดเอกสารโครงการ ต้นไม้ล้านต้น ล้านความดี
       </h1>
 
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-        โปรดอัปโหลดบัตรประจำตัวผู้บริจาคโลหิตทั้งหน้าและหลัง พร้อมรูปถ่าย
-        (ถ้ามี)
+        โปรดรูปภาพขณะทำกิจกรรมที่เห็นตัวผู้ทำกิจกรรมชัดเจนพร้อมกัับ
+        ภาพหน้าจอการบันทึกข้อมูลการปลูกต้นไม้ทาง
+        https://plant.forest.go.th/register/studentloan
         <br />
         การส่งขออนุมัติชั่วโมงจิตอาสาสามารถทำได้ครั้งเดียวต่อปีการศึกษาเท่านั้น
         <br />
-        (แต่สามารถบริจาคได้หลายครั้ง
-        โปรดทำให้ครบครั้งที่คาดว่าจะทำแล้วอัปโหลดทีเดียว)
+        (โปรดทำให้ครบครั้งที่คาดว่าจะทำแล้วอัปโหลดทีเดียว)
+        <br />
+        หากมีการอนุมัติแล้วจะไม่สามารถส่งเพิ่มได้อีก
+        <br />
+        <strong>วิธีการคำนวณชั่วโมง:</strong> การปลูกต้นไม้ 1 ต้น
+        นับเป็นจิตสาธารณะได้ 2 ชั่วโมง (คนละไม่เกิน 5 ต้น /ปี)
         {academicPeriod && (
           <p className="text-red-600 mt-2">
             * กิจกรรมที่ส่งต้องอยู่ในช่วงวันที่ {academicPeriod.start} ถึง{" "}
@@ -377,4 +375,4 @@ const onDrop = (files) => {
   );
 }
 
-export default SubmitBloodDonatePage;
+export default SubmitPlantPage;

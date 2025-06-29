@@ -115,3 +115,29 @@ exports.getUserScholarshipStatus = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch scholarship status" });
   }
 };
+
+exports.userInfo = async (req, res) => {
+  try {
+    const user = await prisma.users.findUnique({
+      where: { user_id: req.user.id },
+      select: {
+        user_id: true,
+        username: true,
+        name: true,
+        faculty: true,
+        major: true,
+        email: true,
+        phone: true,
+        role: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json(user);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch user info" });
+  }
+};
+

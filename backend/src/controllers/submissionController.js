@@ -1,3 +1,4 @@
+const { type } = require("os");
 const prisma = require("../config/database");
 const path = require("path");
 
@@ -19,12 +20,10 @@ exports.submitSubmission = async (req, res) => {
         typeof certificate_type_id !== "string" ||
         certificate_type_id.trim() === ""
       ) {
-        return res
-          .status(400)
-          .json({
-            error:
-              "กรุณาระบุรหัสประเภท Certificate (certificate_type_id) ที่เป็น UUID ที่ถูกต้อง",
-          });
+        return res.status(400).json({
+          error:
+            "กรุณาระบุรหัสประเภท Certificate (certificate_type_id) ที่เป็น UUID ที่ถูกต้อง",
+        });
       }
       // ไม่จำเป็นต้องใช้ parseInt สำหรับ UUID เพราะมันเป็น string
 
@@ -148,88 +147,6 @@ exports.getUserSubmissions = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch user submissions" });
   }
 };
-
-// exports.getPendingSubmissions = async (req, res) => {
-//   const {
-//     category,
-//     page = 1,
-//     pageSize = 50,
-//     searchQuery = "",
-//     sortOption = "latest",
-//   } = req.query;
-
-//   const numericPage = parseInt(page);
-//   const numericPageSize = parseInt(pageSize);
-//   const q = searchQuery.trim(); // ไม่ต้องแปลงเป็น lowercase แล้ว
-
-//   const where = {
-//     status: "submitted",
-//     type: category,
-//     ...(q && {
-//       OR: [
-//         { users: { name: { contains: q } } },
-//         { users: { username: { contains: q } } },
-//         { users: { major: { contains: q } } },
-//         {
-//           certificate_type: {
-//             certificate_name: { contains: q },
-//           },
-//         },
-//         {
-//           certificate_type: {
-//             category: { contains: q },
-//           },
-//         },
-//       ],
-//     }),
-//   };
-
-//   let orderBy = { created_at: "desc" };
-//   if (sortOption === "oldest") {
-//     orderBy = { created_at: "asc" };
-//   } else if (sortOption === "type") {
-//     orderBy =
-//       category === "Certificate"
-//         ? { certificate_type: { category: "asc" } }
-//         : { type: "asc" };
-//   } else if (sortOption === "user") {
-//     orderBy = { users: { name: "asc" } };
-//   }
-
-//   try {
-//     const [submissions, totalSubmissions] = await Promise.all([
-//       prisma.submissions.findMany({
-//         where,
-//         include: {
-//           users: true,
-//           academic_years: true,
-//           certificate_type: true,
-//           submission_files: true,
-//           status_logs: {
-//             orderBy: { changed_at: "desc" },
-//             take: 1,
-//           },
-//         },
-//         orderBy,
-//         skip: (numericPage - 1) * numericPageSize,
-//         take: numericPageSize,
-//       }),
-//       prisma.submissions.count({ where }),
-//     ]);
-
-//     const totalPages = Math.ceil(totalSubmissions / numericPageSize);
-
-//     res.json({
-//       submissions,
-//       totalPages,
-//       currentPage: numericPage,
-//       totalSubmissions,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error fetching pending submissions:", error);
-//     res.status(500).json({ error: "Failed to fetch pending submissions" });
-//   }
-// };
 
 exports.getPendingSubmissions = async (req, res) => {
   const {
@@ -355,31 +272,46 @@ exports.getPendingSubmissions = async (req, res) => {
     } else {
       // --- Logic เดิม สำหรับการดึงรายการ Submission ---
       // Apply search query filter
-      const where = {
-        status: "submitted",
-        type: category,
-        ...(q && {
-          // Apply search query if present
-          OR: [
-            { users: { name: { contains: q, mode: "insensitive" } } }, // Use case-insensitive search
-            { users: { username: { contains: q, mode: "insensitive" } } },
-            { users: { major: { contains: q, mode: "insensitive" } } },
-            // Search by certificate name or category if applicable
-            ...(category === "Certificate" && {
+      let where;
+      if (category === "Others") {
+        const orConditions = [
+          { users: { name: { contains: q } } },
+          { users: { username: { contains: q } } },
+          { users: { major: { contains: q } } },
+        ];
+
+        where = {
+          status: "submitted",
+          NOT: {
+            type: { in: ["Certificate", "BloodDonate", "NSF", "AOM YOUNG"] },
+          },
+          ...(q && { OR: orConditions }),
+        };
+      } else {
+        const orConditions = [
+          { users: { name: { contains: q } } },
+          { users: { username: { contains: q } } },
+          { users: { major: { contains: q } } },
+        ];
+
+        if (category === "Certificate") {
+          orConditions.push(
+            {
               certificate_type: {
-                OR: [
-                  { certificate_name: { contains: q, mode: "insensitive" } },
-                  { category: { contains: q, mode: "insensitive" } },
-                ],
+                certificate_name: { contains: q },
               },
-            }),
-            // Search by topic for other types
-            ...(category !== "Certificate" && {
-              topic: { contains: q, mode: "insensitive" },
-            }),
-          ],
-        }),
-      };
+            },
+            { certificate_type: { category: { contains: q } } }
+          );
+        } 
+      
+
+        where = {
+          status: "submitted",
+          type: category,
+          ...(q && { OR: orConditions }),
+        };
+      }
 
       // Determine sorting criteria
       let finalOrderBy;
@@ -444,12 +376,10 @@ exports.reviewSubmission = async (req, res) => {
 
   // Input validation เพิ่มเติม (แนะนำ)
   if (!status || (status === "rejected" && !rejection_reason)) {
-    return res
-      .status(400)
-      .json({
-        error:
-          "กรุณาระบุข้อมูลให้ครบถ้วน (status และ rejection_reason ถ้าปฏิเสธ)",
-      });
+    return res.status(400).json({
+      error:
+        "กรุณาระบุข้อมูลให้ครบถ้วน (status และ rejection_reason ถ้าปฏิเสธ)",
+    });
   }
 
   try {
@@ -632,5 +562,99 @@ exports.getPendingCertificatesByUser = async (req, res) => {
     res
       .status(500)
       .json({ error: "Failed to fetch user's pending certificates" });
+  }
+};
+
+exports.getApprovalHistory = async (req, res) => {
+  const {
+    category,
+    page = 1,
+    pageSize = 50,
+    searchQuery = "",
+    sortOption = "latest",
+  } = req.query;
+
+  const numericPage = parseInt(page);
+  const numericPageSize = parseInt(pageSize);
+  const q = searchQuery.trim();
+
+  let where;
+  if (category === "Others") {
+    const orConditions = [
+      { users: { name: { contains: q } } },
+      { users: { username: { contains: q } } },
+      { users: { major: { contains: q } } },
+      {type: { contains: q }}
+    ];
+
+    where = {
+      NOT: {
+        type: { in: ["Certificate", "BloodDonate", "NSF", "AOM YOUNG"] },
+      },
+      status: { in: ["approved", "rejected"] },
+      ...(q && { OR: orConditions }),
+    };
+  } else {
+    const orConditions = [
+      { users: { name: { contains: q } } },
+      { users: { username: { contains: q } } },
+      { users: { major: { contains: q } } },
+    ];
+
+    if (category === "Certificate") {
+      orConditions.push(
+        { certificate_type: { certificate_name: { contains: q } } },
+        { certificate_type: { category: { contains: q } } }
+      );
+    }
+
+    where = {
+      type: category,
+      status: { in: ["approved", "rejected"] },
+      ...(q && { OR: orConditions }),
+    };
+  }
+
+  const finalOrderBy = {
+    updated_at: sortOption === "latest" ? "desc" : "asc",
+  };
+
+  try {
+    const [submissions, totalSubmissions] = await Promise.all([
+      prisma.submissions.findMany({
+        where,
+        include: {
+          users: true,
+          academic_years: true,
+          certificate_type: true,
+          submission_files: true,
+          status_logs: {
+            orderBy: { changed_at: "desc" },
+            take: 1,
+            include: {
+              changed_by_user: {
+                select: { name: true, username: true },
+              },
+            },
+          },
+        },
+        orderBy: finalOrderBy,
+        skip: (numericPage - 1) * numericPageSize,
+        take: numericPageSize,
+      }),
+      prisma.submissions.count({ where }),
+    ]);
+
+    const totalPages = Math.ceil(totalSubmissions / numericPageSize);
+
+    res.json({
+      submissions,
+      totalPages,
+      currentPage: numericPage,
+      totalSubmissions,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching approval history:", error);
+    res.status(500).json({ error: "Failed to fetch approval history" });
   }
 };

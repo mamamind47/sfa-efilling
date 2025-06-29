@@ -16,6 +16,7 @@ import {
   Upload,
   FileUp,
   Hourglass,
+  History,
 } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
 
@@ -35,12 +36,12 @@ const menuItemsData = (role) =>
       text: "ยื่นใบรับรอง",
       roles: ["student"],
     },
-  {
+    {
       path: "/app/submission-status",
       icon: Hourglass,
       text: "ตรวจสอบสถานะ",
       roles: ["student"],
-  },
+    },
     {
       icon: SlidersHorizontal,
       text: "จัดการ",
@@ -76,6 +77,12 @@ const menuItemsData = (role) =>
       path: "/app/pending-approvals",
       icon: ListChecks,
       text: "รอดำเนินการ",
+      roles: ["admin"],
+    },
+    {
+      path: "/app/history-approvals",
+      icon: History,
+      text: "ประวัติการอนุมัติ",
       roles: ["admin"],
     },
     {

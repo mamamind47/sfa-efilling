@@ -17,6 +17,7 @@ import {
   Upload,
   FileUp,
   Hourglass,
+  History,
 } from "lucide-react";
 
 const DashboardPage = () => <div className="p-4">Dashboard Page</div>;
@@ -33,6 +34,8 @@ import SubmitNSFPage from "../pages/app/SubmitNSFPage.jsx";
 import SubmitAOMYoungPage from "../pages/app/SubmitAOMYoungPage.jsx";
 import AdminUserStatsPage from "../pages/app/AdminUserStatsPage.jsx";
 import UserSubmissionStatusPage from "../pages/app/UserSubmissionStatusPage.jsx";
+import SubmitPlantPage from "../pages/app/SubmitPlantPage.jsx";
+import ApprovalHistoryPage from "../pages/app/ApprovalHistoryPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -93,6 +96,12 @@ const menuItemsData = (role) =>
       path: "/app/pending-approvals",
       icon: ListChecks,
       text: "รอดำเนินการ",
+      roles: ["admin"],
+    },
+    {
+      path: "/app/history-approvals",
+      icon: History,
+      text: "ประวัติการอนุมัติ",
       roles: ["admin"],
     },
     {
@@ -169,6 +178,10 @@ function ProtectedLayout() {
                   element={<SubmitAOMYoungPage />}
                 />
                 <Route
+                  path="submit/:academic_year_id/plant"
+                  element={<SubmitPlantPage />}
+                />
+                <Route
                   path="submission-status"
                   element={<UserSubmissionStatusPage />}
                   />
@@ -199,6 +212,10 @@ function ProtectedLayout() {
                   path="upload-scholarship"
                   element={<UploadScholarshipPage />}
                 />
+                <Route
+                  path="history-approvals"
+                  element={<ApprovalHistoryPage />}
+                  />
               </>
             )}
 

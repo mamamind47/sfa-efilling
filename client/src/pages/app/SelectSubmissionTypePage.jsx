@@ -11,6 +11,7 @@ import {
   CheckCircle,
   PiggyBank,
   LineChart,
+  TreePine,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
@@ -38,15 +39,21 @@ function SelectSubmissionTypePage() {
 
         const now = new Date();
         const openYears = academicRes.data
-          .filter(
-            (y) => new Date(y.start_date) <= now && now <= new Date(y.end_date)
-          )
-          .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
+          .filter((y) => {
+            if (y.status === "OPEN") return true;
+            if (y.status === null) {
+              const start = new Date(y.start_date);
+              const end = new Date(y.end_date);
+              return start <= now && now <= end;
+            }
+            return false;
+          })
+          .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));        
 
         if (openYears.length > 0) {
           setSelectedYearId(openYears[0].academic_year_id);
         } else {
-          alert("ไม่พบปีการศึกษาที่เปิดอยู่ในขณะนี้");
+          alert("ขออภัย ไม่อยู่ในช่วงให้ยื่นเอกสาร");
         }
 
         setAcademicYears(openYears);
@@ -105,6 +112,14 @@ function SelectSubmissionTypePage() {
     : [];
 
   const isCompleted = total >= 36;
+
+  if (!selectedYearId) {
+    return (
+      <div className="p-4 text-center text-red-600 font-semibold text-lg">
+        ขออภัย ขณะนี้ไม่อยู่ในช่วงให้ยื่นเอกสาร หากท่านไม่ได้ยื่ยเอกสารภายในระยะเวลาที่กำหนด โปรดติดต่อเจ้าหน้าที่ ที่เบอร์ 02-470-9982
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -285,6 +300,27 @@ function SelectSubmissionTypePage() {
                 </p>
                 <p className="text-sm text-base-content">
                   แนบสลิปการลงทุน และ Statement (ถ้ามี)
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="shrink-0" />
+          </div>
+        </motion.button>
+
+        <motion.button
+          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          onClick={() => navigate(`/app/submit/${selectedYearId}/plant`)}
+        >
+          <div className="card-body flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <TreePine size={40} className="text-green-600" />
+              <div>
+                <p className="text-base font-semibold text-base-content">
+                  ต้นไม้ล้านต้น ล้านความดี
                 </p>
               </div>
             </div>

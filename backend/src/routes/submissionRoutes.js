@@ -5,7 +5,8 @@ const {
   getPendingSubmissions,
   reviewSubmission,
   batchReviewSubmissions,
-  getPendingCertificatesByUser
+  getPendingCertificatesByUser,
+  getApprovalHistory
 } = require("../controllers/submissionController");
 const upload = require("../utils/fileUpload");
 
@@ -26,5 +27,7 @@ router.put("/:submission_id/review", reviewSubmission);
 router.post("/batch-review", batchReviewSubmissions);
 
 router.get('/submission/user/:userId/pending-certificates',getPendingCertificatesByUser);
+
+router.get("/history", getApprovalHistory);
 
 module.exports = router;

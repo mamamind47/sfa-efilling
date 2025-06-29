@@ -8,6 +8,7 @@ import {
   Loader2,
   AlertCircle,
   Download,
+  Edit,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -47,6 +48,11 @@ function AdminUserStatsPage() {
   const [error, setError] = useState(null);
   const [isExporting, setIsExporting] = useState(false); // State สำหรับ Export Button
   const initialMount = useRef(true);
+
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [selectedScholarship, setSelectedScholarship] = useState("ยังไม่สมัคร");
+  const [showModal, setShowModal] = useState(false);
+  const [editingUserInfo, setEditingUserInfo] = useState(null);
 
   useEffect(() => {
     if (initialMount.current) {
@@ -213,6 +219,27 @@ function AdminUserStatsPage() {
     }
   };
   // --- END CORRECTED Export Handler ---
+
+  const handleSaveScholarship = async () => {
+    try {
+      await apiClient.post("/admin/update-scholarship", {
+        student_id: editingUserId,
+        academic_year: selectedAcademicYearName,
+        new_type: selectedScholarship,
+      });
+
+      toast.success(
+        `อัปเดตสถานะทุนของ ${editingUserInfo?.name || "นักศึกษา"} เรียบร้อยแล้ว`
+      );
+
+      await fetchData(); // ✅ โหลดข้อมูลใหม่หลังอัปเดต
+
+      setShowModal(false); // ✅ ปิด popup
+    } catch (error) {
+      console.error("Update error:", error);
+      toast.error("เกิดข้อผิดพลาดในการอัปเดต");
+    }
+  };
 
   return (
     <div className="p-4 md:p-6 space-y-6 bg-gray-50 min-h-screen">
@@ -381,7 +408,7 @@ function AdminUserStatsPage() {
                   <th className="p-3 text-center">AOM YOUNG</th>
                   <th className="p-3 text-center">อื่นๆ (ชม.)</th>
                   <th className="p-3 text-center font-bold">รวม (ชม.)</th>
-                  <th className="p-3 text-center">สถานะทุน/ประเภท</th>{" "}
+                  <th className="p-3 text-center">สถานะทุน/ประเภท</th>
                   {/* Changed Header */}
                 </tr>
               </thead>
@@ -426,28 +453,42 @@ function AdminUserStatsPage() {
                       </td>
                       {/* ***** CORRECTED SCHOLARSHIP DISPLAY ***** */}
                       <td className="p-3 text-center">
-                        {u.scholarshipStatusDisplay === "ยังไม่สมัคร" ? (
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-600">
-                            {u.scholarshipStatusDisplay}
+                        <div className="flex items-center justify-center gap-2">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              u.scholarshipStatusDisplay === "ยังไม่สมัคร"
+                                ? "bg-gray-100 text-gray-600"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {u.scholarshipStatusDisplay || "ยังไม่สมัคร"}
                           </span>
-                        ) : (
-                          // If it's not "ยังไม่สมัคร", display the type with a different style
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            {u.scholarshipStatusDisplay}{" "}
-                            {/* Display the actual type */}
-                          </span>
-                        )}
+                          <button
+                            className="btn btn-xs btn-outline btn-square"
+                            title="แก้ไขสถานะทุน"
+                            onClick={() => {
+                              setEditingUserId(u.username);
+                              setSelectedScholarship(
+                                u.scholarshipStatusDisplay || "ยังไม่สมัคร"
+                              );
+                              setEditingUserInfo(u);
+                              setShowModal(true);
+                            }}
+                          >
+                            <Edit size={14} />
+                          </button>
+                        </div>
                       </td>
                       {/* ***** END CORRECTION ***** */}
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    {" "}
+                    
                     <td colSpan={9} className="text-center p-10 text-gray-500">
-                      {" "}
-                      ไม่พบข้อมูลนักศึกษาที่ตรงกับเงื่อนไขการค้นหาและตัวกรอง{" "}
-                    </td>{" "}
+                      
+                      ไม่พบข้อมูลนักศึกษาที่ตรงกับเงื่อนไขการค้นหาและตัวกรอง
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -488,6 +529,44 @@ function AdminUserStatsPage() {
               พบ {totalItems.toLocaleString()} รายการ{" "}
             </div>
           )}
+        </div>
+      )}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-[300px]">
+            <h2 className="font-semibold mb-3">
+              แก้ไขสถานะทุน
+              <div className="text-sm font-normal text-gray-600">
+                {editingUserInfo?.name} ({editingUserInfo?.username})
+              </div>
+            </h2>
+
+            <select
+              className="select select-bordered w-full mb-4"
+              value={selectedScholarship}
+              onChange={(e) => setSelectedScholarship(e.target.value)}
+            >
+              <option>ยังไม่สมัคร</option>
+              <option>ลักษณะที่ 1</option>
+              <option>ลักษณะที่ 2</option>
+              <option>ลักษณะที่ 3</option>
+            </select>
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-sm"
+                onClick={() => setShowModal(false)}
+              >
+                ยกเลิก
+              </button>
+              <button
+                className="btn btn-sm btn-primary"
+                onClick={handleSaveScholarship}
+              >
+                บันทึก
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
