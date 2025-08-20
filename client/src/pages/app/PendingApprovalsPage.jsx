@@ -14,7 +14,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 function PendingApprovalsPage() {
   const [submissions, setSubmissions] = useState([]);
-  const [filter, setFilter] = useState("Certificate");
+  const [filter, setFilter] = useState("ALL_NON_CERTIFICATE");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOption, setSortOption] = useState("latest");
   const [selectedIds, setSelectedIds] = useState([]);
@@ -41,27 +41,18 @@ function PendingApprovalsPage() {
   const [pageSize, setPageSize] = useState(50);
 
 
-  const categories = [
-    "Certificate",
-    "BloodDonate",
-    "NSF",
-    "AOM YOUNG",
-    "Others",
-  ];
 
   const fetchData = useCallback(async () => {
     setIsPreviewDrawerOpen(false);
     setReviewingSubmission(null);
-    // setLoadingIndividual(true); // Consider a general loading state if preferred
-    // setLoadingBatch(true); // Or separate loading states for table data
     try {
       const res = await apiClient.get("/submission/pending", {
         params: {
-          category: filter,
+          category: filter === "ALL_NON_CERTIFICATE" ? "Others" : filter,
           page: currentPage,
-          pageSize: pageSize, // << UPDATED: Use pageSize
-          searchQuery: searchQuery, // << NEW: Pass searchQuery
-          sortOption: sortOption, // << NEW: Pass sortOption
+          pageSize: pageSize,
+          searchQuery: searchQuery,
+          sortOption: sortOption,
         },
       });
       setSubmissions(res.data.submissions || []);
@@ -74,11 +65,8 @@ function PendingApprovalsPage() {
       );
       setSubmissions([]);
       setTotalPages(1);
-    } finally {
-      // setLoadingIndividual(false);
-      // setLoadingBatch(false);
     }
-  }, [filter, currentPage, pageSize, searchQuery, sortOption]); // << UPDATED: Dependencies
+  }, [filter, currentPage, pageSize, searchQuery, sortOption]);
 
   useEffect(() => {
     document.title = "รายการรออนุมัติ | Volunteer Student Loan e-Filling";
@@ -511,10 +499,24 @@ function PendingApprovalsPage() {
   };
 
   // --- Column Visibility & Colspan ---
-  const showTypeColumn = !["BloodDonate", "NSF", "AOM YOUNG"].includes(filter);
-  const showTopicColumn = !["BloodDonate", "NSF", "AOM YOUNG"].includes(filter);
-  const showHoursColumn = filter !== "Certificate";
-  const showActionsColumn = filter !== "Certificate";
+  const showTypeColumn = ![
+    "BloodDonate",
+    "NSF",
+    "AOM YOUNG",
+    "ต้นไม้ล้านต้น ล้านความดี",
+    "religious",
+    "social-development",
+  ].includes(filter);
+  const showTopicColumn = ![
+    "BloodDonate",
+    "NSF",
+    "AOM YOUNG",
+    "ต้นไม้ล้านต้น ล้านความดี",
+    "religious",
+    "social-development",
+  ].includes(filter);
+  const showHoursColumn = !["Certificate"].includes(filter);
+  const showActionsColumn = !["Certificate"].includes(filter);
 
   const calculateColspan = () => {
     let count = 3;
@@ -553,7 +555,7 @@ function PendingApprovalsPage() {
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
-              setCurrentPage(1); // << NEW: Reset page on search change
+              setCurrentPage(1);
             }}
           />
           <select
@@ -561,43 +563,30 @@ function PendingApprovalsPage() {
             value={sortOption}
             onChange={(e) => {
               setSortOption(e.target.value);
-              setCurrentPage(1); // << NEW: Reset page on sort change
+              setCurrentPage(1);
             }}
           >
             <option value="latest">ใหม่สุดก่อน</option>
             <option value="oldest">เก่าสุดก่อน</option>
-            <option value="type">ประเภท/หมวดหมู่</option>
-            <option value="user">ผู้ส่ง</option>
           </select>
-
-          <div className="tabs tabs-boxed bg-base-100 flex-wrap">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                className={`tab tab-sm sm:tab-md ${
-                  filter === cat ? "tab-active !bg-orange-500 text-white" : ""
-                }`}
-                onClick={() => {
-                  if (filter !== cat) {
-                    setFilter(cat);
-                    setCurrentPage(1);
-                    setSearchQuery(""); // Reset search on filter change
-                    // setSortOption("latest"); // Optionally reset sort too
-                  }
-                }}
-              >
-                {cat === "Certificate"
-                  ? "เรียนออนไลน์"
-                  : cat === "BloodDonate"
-                  ? "บริจาคเลือด"
-                  : cat === "NSF"
-                  ? "ออมเงิน"
-                  : cat === "AOM YOUNG"
-                  ? "AOM YOUNG"
-                  : "อื่นๆ"}
-              </button>
-            ))}
-          </div>
+          <select
+            className="select select-sm select-bordered focus:outline-none focus:ring-0 focus:border-gray-300 w-full sm:w-auto"
+            value={filter}
+            onChange={(e) => {
+              setFilter(e.target.value);
+              setCurrentPage(1);
+              setSearchQuery(""); // Reset search on filter change
+            }}
+          >
+            <option value="ALL_NON_CERTIFICATE">ทั้งหมด (ยกเว้นเรียนออนไลน์)</option>
+            <option value="Certificate">เรียนออนไลน์/e-Learning</option>
+            <option value="BloodDonate">บริจาคเลือด</option>
+            <option value="NSF">ออมเงิน</option>
+            <option value="AOM YOUNG">AOM YOUNG</option>
+            <option value="ต้นไม้ล้านต้น ล้านความดี">ต้นไม้ล้านต้น ล้านความดี</option>
+            <option value="religious">พัฒนาศาสนสถาน</option>
+            <option value="social-development">พัฒนาชุมชน</option>
+          </select>
         </div>
 
         {/* Batch Action Buttons */}
@@ -724,7 +713,15 @@ function PendingApprovalsPage() {
                     )}
                   </td>
                   <td className="p-2">
-                    <div className="font-medium">{s.users?.name || "-"}</div>
+                    <button
+                      className="font-medium text-blue-600 hover:underline"
+                      onClick={() => {
+                        setSearchQuery(s.users?.username || "");
+                        setCurrentPage(1);
+                      }}
+                    >
+                      {s.users?.name || "-"}
+                    </button>
                     <div className="text-xs text-gray-500 leading-tight">
                       <div>{s.users?.username || "-"}</div>
                       <div>{s.users?.faculty || "-"}</div>
@@ -733,13 +730,17 @@ function PendingApprovalsPage() {
                   </td>
                   {showTypeColumn && (
                     <td className="p-2">
-                      {s.type === "Certificate"
-                        ? s.certificate_type?.category || (
-                            <span className="text-gray-400 italic">
-                              ไม่มีหมวดหมู่
-                            </span>
-                          )
-                        : s.type}
+                      {s.type === "Certificate" ? (
+                        s.certificate_type?.category || (
+                          <span className="text-gray-400 italic">ไม่มีหมวดหมู่</span>
+                        )
+                      ) : s.type === "religious" ? (
+                        "พัฒนาศาสนสถาน"
+                      ) : s.type === "social-development" ? (
+                        "พัฒนาชุมชน"
+                      ) : (
+                        s.type
+                      )}
                     </td>
                   )}
                   {showTopicColumn && (
@@ -787,7 +788,7 @@ function PendingApprovalsPage() {
                   </td>
                   {showActionsColumn && (
                     <td className="p-2">
-                      {s.type !== "Certificate" ? (
+                      {!["Certificate"].includes(s.type) ? (
                         <button
                           className="btn btn-xs btn-outline btn-info"
                           onClick={() => openIndividualReviewModal(s)}

@@ -1,8 +1,23 @@
 const { type } = require("os");
 const prisma = require("../config/database");
 const path = require("path");
+const axios = require("axios");
+const sharp = require("sharp");
+const jsQR = require("jsqr");
+const fs = require("fs");
+const { parse } = require("date-fns");
+const thLocale = require("date-fns/locale/th");
+// NOTE: pdf-lib + pdfjs-dist + canvas are used for PDF processing instead of pdf-poppler
+const { PDFDocument } = require("pdf-lib");
+const { getDocument } = require("pdfjs-dist/legacy/build/pdf.js");
+const { createCanvas } = require("canvas");
 
-// ✅ ยื่น Submission
+// Setup PDF.js worker path
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+const workerPath = require.resolve("pdfjs-dist/build/pdf.worker.js");
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+
+// ยื่น Submission
 exports.submitSubmission = async (req, res) => {
   const { academic_year_id, type, certificate_type_id, hours } = req.body;
   const files = req.files;
@@ -91,14 +106,234 @@ exports.submitSubmission = async (req, res) => {
       })
     );
 
-    // สร้าง log สถานะเริ่มต้น
-    await prisma.submission_status_logs.create({
-      data: {
-        submission_id: submission.submission_id,
-        status: "submitted",
-        changed_by: user_id,
-      },
+    // --- BEGIN AUTO APPROVAL LOGIC ---
+    let certType = null;
+
+    if (type === "Certificate" && certificate_type_id) {
+      certType = await prisma.certificate_types.findUnique({
+        where: { certificate_type_id },
+      });
+    }
+
+    const user = await prisma.users.findUnique({
+      where: { user_id },
     });
+
+    const academicYear = await prisma.academic_years.findUnique({
+      where: { academic_year_id },
+    });
+
+    const isSetELearning = certType?.category === "SET-eLearning";
+    const filePath = files?.[0]?.path;
+    let qrCodeData;
+    let certRefCode;
+
+    if (isSetELearning && filePath) {
+      const fileExt = path.extname(filePath).toLowerCase();
+      if (fileExt === ".pdf") {
+        // Use pdf-lib + pdfjs-dist + canvas for PDF to image conversion (first page) for QR scan
+        try {
+          const fileData = fs.readFileSync(filePath);
+          const pdfDoc = await PDFDocument.load(fileData);
+          const pdfBuffer = await pdfDoc.save();
+
+          const loadingTask = pdfjsLib.getDocument({ data: pdfBuffer });
+          const pdf = await loadingTask.promise;
+          const page = await pdf.getPage(1);
+
+          const viewport = page.getViewport({ scale: 2 });
+          const canvas = createCanvas(viewport.width, viewport.height);
+          const context = canvas.getContext("2d");
+
+          const renderContext = {
+            canvasContext: context,
+            viewport: viewport,
+          };
+
+          await page.render(renderContext).promise;
+          const imageBuffer = canvas.toBuffer("image/jpeg");
+
+          const image = sharp(imageBuffer);
+          const metadata = await image.metadata();
+
+          if (metadata.space !== "rgb" && metadata.space !== "b-w") {
+            image.toColorspace("srgb");
+          }
+
+          const { data, info } = await image
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+
+          const qr = jsQR(new Uint8ClampedArray(data), info.width, info.height);
+          if (qr) {
+            qrCodeData = qr.data;
+            const qrMatch = qrCodeData.match(/certificate-checker\/(SET.+)$/);
+            certRefCode = qrMatch?.[1];
+          }
+        } catch (err) {
+          console.error("Failed to extract QR from PDF with pdf-lib:", err.message);
+        }
+      } else {
+        try {
+          const imageBuffer = fs.readFileSync(filePath);
+          const image = sharp(imageBuffer);
+          const metadata = await image.metadata();
+
+          if (metadata.space !== "rgb" && metadata.space !== "b-w") {
+            image.toColorspace("srgb");
+          }
+
+          const { data, info } = await image
+            .ensureAlpha()
+            .raw()
+            .toBuffer({ resolveWithObject: true });
+
+          const qr = jsQR(new Uint8ClampedArray(data), info.width, info.height);
+          if (qr) {
+            qrCodeData = qr.data;
+            const qrMatch = qrCodeData.match(/certificate-checker\/(SET.+)$/);
+            certRefCode = qrMatch?.[1];
+          }
+        } catch (err) {
+          console.error("QR code reading failed:", err.message);
+        }
+      }
+    }
+
+    let autoApproved = false;
+
+    if (certRefCode && isSetELearning && certType?.certificate_code && user?.name && academicYear) {
+      try {
+        const response = await axios.get(`${process.env.SET_EL_API}/${certRefCode}`);
+        const certData = response.data;
+
+        // Convert Thai date to Date object
+        let certDate;
+        try {
+          const rawDate = certData && typeof certData.certificate_datetime === "string"
+            ? certData.certificate_datetime.trim()
+            : null;
+          const thaiMonthMap = {
+            มกราคม: "01",
+            กุมภาพันธ์: "02",
+            มีนาคม: "03",
+            เมษายน: "04",
+            พฤษภาคม: "05",
+            มิถุนายน: "06",
+            กรกฎาคม: "07",
+            สิงหาคม: "08",
+            กันยายน: "09",
+            ตุลาคม: "10",
+            พฤศจิกายน: "11",
+            ธันวาคม: "12",
+          };
+          if (rawDate) {
+            try {
+              const [dayStr, monthThai, yearThai] = rawDate.split(" ");
+              const month = thaiMonthMap[monthThai];
+              const year = parseInt(yearThai) - 543;
+              const dateStr = `${year}-${month}-${dayStr.padStart(2, "0")}`;
+              certDate = new Date(dateStr);
+              if (!(certDate instanceof Date) || isNaN(certDate)) {
+                console.warn("⚠️ Parsed certificate date is invalid:", dateStr);
+                certDate = undefined;
+              }
+            } catch (parseErr) {
+              console.error("❌ Failed to parse certificate date:", parseErr.message);
+            }
+          } else {
+            console.warn("⚠️ certificate_datetime is missing or not a string", certData?.certificate_datetime);
+          }
+        } catch (parseError) {
+          console.error("Failed to parse certificate date:", parseError.message);
+        }
+
+
+
+        const isDateValid =
+          certDate instanceof Date &&
+          !isNaN(certDate) &&
+          certDate >= new Date(academicYear.start_date) &&
+          certDate <= new Date(academicYear.end_date);
+
+        const isNameMatched = certData.members.full_name.trim() === user.name.trim();
+        const isCodeMatched = certData.courses.code === certType.certificate_code;
+
+        const rejectionReasons = [];
+
+        if (!isCodeMatched) {
+          rejectionReasons.push(
+            "หัวข้อในใบรับรองไม่ตรงกับหัวข้อที่ยื่น หรือ ไม่ได้เรียนในระบบ SET e-Learning ของ กยศ. โปรดเข้าเรียนผ่านเมนู SET e-Learning จากเว็บไซต์ของ กยศ."
+          );
+        }
+
+        if (!isNameMatched) {
+          rejectionReasons.push("ชื่อผู้เรียนไม่ถูกต้อง");
+        }
+
+        if (!isDateValid) {
+          const start = new Date(academicYear.start_date).toLocaleDateString("th-TH");
+          const end = new Date(academicYear.end_date).toLocaleDateString("th-TH");
+          rejectionReasons.push(`วันที่ในใบรับรองต้องอยู่ในช่วง ${start} - ${end} เท่านั้น`);
+        }
+
+        if (rejectionReasons.length === 0) {
+          // Auto approve
+          await prisma.submissions.update({
+            where: { submission_id: submission.submission_id },
+            data: {
+              status: "approved",
+              hours: certType.hours,
+            },
+          });
+
+          await prisma.submission_status_logs.create({
+            data: {
+              submission_id: submission.submission_id,
+              status: "approved",
+              changed_by: null,
+            },
+          });
+
+          autoApproved = true;
+        } else {
+          // Auto reject with reasons
+          const rejectionReasonText = rejectionReasons.join(" ");
+          await prisma.submissions.update({
+            where: { submission_id: submission.submission_id },
+            data: {
+              status: "rejected",
+              rejection_reason: rejectionReasonText,
+            },
+          });
+
+          await prisma.submission_status_logs.create({
+            data: {
+              submission_id: submission.submission_id,
+              status: "rejected",
+              reason: rejectionReasonText,
+              changed_by: null,
+            },
+          });
+
+          autoApproved = true; // Still mark as handled
+        }
+      } catch (err) {
+        console.error("Failed to verify SET eLearning certificate:", err.message);
+      }
+    }
+
+    if (!autoApproved) {
+      await prisma.submission_status_logs.create({
+        data: {
+          submission_id: submission.submission_id,
+          status: "submitted",
+          changed_by: user_id,
+        },
+      });
+    }
+    // --- END AUTO APPROVAL LOGIC ---
 
     res.status(201).json({
       // 201 Created สำหรับการสร้างสำเร็จ
@@ -106,7 +341,7 @@ exports.submitSubmission = async (req, res) => {
       data: submission,
     });
   } catch (error) {
-    console.error("❌ Error creating submission:", error);
+    console.error("Error creating submission:", error);
     if (error.code === "P2002") {
       return res
         .status(409)
@@ -283,7 +518,17 @@ exports.getPendingSubmissions = async (req, res) => {
         where = {
           status: "submitted",
           NOT: {
-            type: { in: ["Certificate", "BloodDonate", "NSF", "AOM YOUNG"] },
+            type: {
+              in: [
+                "Certificate",
+                "BloodDonate",
+                "NSF",
+                "AOM YOUNG",
+                "ต้นไม้ล้านต้น ล้านความดี",
+                "religious",
+                "social-development"
+              ],
+            },
           },
           ...(q && { OR: orConditions }),
         };
@@ -313,22 +558,10 @@ exports.getPendingSubmissions = async (req, res) => {
         };
       }
 
-      // Determine sorting criteria
-      let finalOrderBy;
-      if (sortOption === "type") {
-        finalOrderBy =
-          category === "Certificate"
-            ? [{ certificate_type: { category: "asc" } }, { created_at: "asc" }] // Sort by category, then creation date
-            : [{ type: "asc" }, { created_at: "asc" }]; // Sort by type, then creation date
-      } else if (sortOption === "user") {
-        finalOrderBy = [
-          { users: { name: "asc", mode: "insensitive" } },
-          { created_at: "asc" },
-        ]; // Sort by user name, then creation date
-      } else {
-        // latest or oldest
-        finalOrderBy = { created_at: sortOption === "latest" ? "desc" : "asc" }; // Sort by creation date
-      }
+      // Determine sorting criteria (only latest or oldest supported)
+      const allowedSorts = ["latest", "oldest"];
+      const finalSortOption = allowedSorts.includes(sortOption) ? sortOption : "latest";
+      const finalOrderBy = { created_at: finalSortOption === "latest" ? "desc" : "asc" };
 
       // Fetch submissions and total count
       const [submissions, totalSubmissions] = await Promise.all([

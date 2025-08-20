@@ -51,13 +51,13 @@ function ManageCertificatesPage() {
       setCertificates(sortedCerts);
     } catch (err) {
       if (err.response?.status !== 401 && err.response?.status !== 403) {
-        console.error("❌ Error fetching certificates:", err);
+        console.error(" Error fetching certificates:", err);
         const errMsg =
           err.response?.data?.error ||
           err.message ||
           "ไม่สามารถโหลดข้อมูลหัวข้อใบรับรองได้";
         // setError(errMsg); // <-- เปลี่ยนเป็น toast.error
-        toast.error(`❌ ${errMsg}`);
+        toast.error(`${errMsg}`);
       }
     } finally {
       setIsLoading(false);
@@ -88,8 +88,7 @@ function ManageCertificatesPage() {
         is_active: 1,
       });
       if (response.status === 200 || response.status === 201) {
-        // alert("✅ เพิ่มหัวข้อใบรับรองสำเร็จ");
-        toast.success("✅ เพิ่มหัวข้อใบรับรองสำเร็จ"); // <-- 4. เปลี่ยน alert เป็น toast.success
+        toast.success("เพิ่มหัวข้อใบรับรองสำเร็จ");
         await fetchCertificates();
         setCertificateCode("");
         setCertificateName("");
@@ -99,13 +98,12 @@ function ManageCertificatesPage() {
         throw new Error(response.data?.error || "สร้างหัวข้อใบรับรองไม่สำเร็จ");
       }
     } catch (err) {
-      console.error("❌ Error creating certificate:", err);
+      console.error("Error creating certificate:", err);
       const errMsg =
         err.response?.data?.error ||
         err.message ||
         "เกิดข้อผิดพลาดในการเพิ่มหัวข้อ";
-      // setError(errMsg); // <-- เปลี่ยนเป็น toast.error
-      toast.error(`❌ ${errMsg}`);
+      toast.error(`${errMsg}`);
     } finally {
       setIsCreating(false);
     }
@@ -119,7 +117,7 @@ function ManageCertificatesPage() {
     }
     const hoursNum = parseInt(editHours, 10);
     if (isNaN(hoursNum) || hoursNum <= 0) {
-      return toast.error("กรุณากรอกชั่วโมงเป็นตัวเลขที่มากกว่า 0"); // <-- 3. เปลี่ยน alert เป็น toast.error (ถ้ามี)
+      return toast.error("กรุณากรอกชั่วโมงเป็นตัวเลขที่มากกว่า 0"); 
     }
 
     setIsUpdating(true);
@@ -136,8 +134,8 @@ function ManageCertificatesPage() {
         }
       );
       if (response.status === 200) {
-        // alert("✅ อัปเดตหัวข้อใบรับรองสำเร็จ");
-        toast.success("✅ อัปเดตหัวข้อใบรับรองสำเร็จ"); // <-- 4. เปลี่ยน alert เป็น toast.success
+        // alert("อัปเดตหัวข้อใบรับรองสำเร็จ");
+        toast.success("อัปเดตหัวข้อใบรับรองสำเร็จ"); 
         await fetchCertificates();
         closeModal();
       } else {
@@ -146,13 +144,12 @@ function ManageCertificatesPage() {
         );
       }
     } catch (err) {
-      console.error("❌ Error updating certificate:", err);
+      console.error("Error updating certificate:", err);
       const errMsg =
         err.response?.data?.error ||
         err.message ||
         "เกิดข้อผิดพลาดในการอัปเดตหัวข้อ";
-      // setError(errMsg); // <-- เปลี่ยนเป็น toast.error
-      toast.error(`❌ ${errMsg}`);
+      toast.error(`${errMsg}`);
     } finally {
       setIsUpdating(false);
     }
@@ -166,20 +163,19 @@ function ManageCertificatesPage() {
     try {
       const response = await apiClient.delete(`/certificate/${id}`);
       if (response.status === 200 || response.status === 204) {
-        // alert(`✅ ลบหัวข้อ "${name}" สำเร็จ`);
-        toast.success(`✅ ลบหัวข้อ "${name}" สำเร็จ`); // <-- 4. เปลี่ยน alert เป็น toast.success
+        toast.success(`ลบหัวข้อ "${name}" สำเร็จ`);
         await fetchCertificates();
       } else {
         throw new Error(response.data?.error || "ไม่สามารถลบหัวข้อใบรับรองได้");
       }
     } catch (err) {
       if (err.response?.status !== 401 && err.response?.status !== 403) {
-        console.error("❌ Error deleting certificate:", err);
+        console.error("Error deleting certificate:", err);
         const errMsg =
           err.response?.data?.error || err.message || "เกิดข้อผิดพลาดในการลบฯ";
         // setError(errMsg); // <-- เปลี่ยนเป็น toast.error
-        // alert(`❌ ${errMsg}`); // <-- ลบ alert เดิม
-        toast.error(`❌ ${errMsg}`); // <-- 3. เปลี่ยน alert เป็น toast.error
+        // alert(`${errMsg}`); // <-- ลบ alert เดิม
+        toast.error(`${errMsg}`); // <-- 3. เปลี่ยน alert เป็น toast.error
       }
     } finally {
       setIsDeleting(false); // Optional: clear deleting state
@@ -270,26 +266,12 @@ function ManageCertificatesPage() {
   // --- Render JSX ---
   return (
     <div className="p-4 md:p-6">
-      {/* // <-- 6. เพิ่ม Component <Toaster /> ที่นี่ */}
       <Toaster
         position="top-right"
         reverseOrder={false}
         toastOptions={
           {
-            // ตั้งค่าสไตล์เริ่มต้น หรือ duration ได้ที่นี่ (optional)
-            // className: '',
-            // duration: 5000,
-            // style: {
-            //   background: '#363636',
-            //   color: '#fff',
-            // },
-            // success: {
-            //   duration: 3000,
-            //   theme: {
-            //     primary: 'green',
-            //     secondary: 'black',
-            //   },
-            // },
+
           }
         }
       />
@@ -299,7 +281,7 @@ function ManageCertificatesPage() {
         <span>จัดการหัวข้อใบรับรอง</span>
       </h1>
 
-      {/* ----- ฟอร์มเพิ่มหัวข้อ (เหมือนเดิม) ----- */}
+      {/* ----- ฟอร์มเพิ่มหัวข้อ ----- */}
       <div className="card bg-base-100 shadow-md mb-6">
         <div className="card-body p-4 md:p-6">
           <h2 className="card-title text-lg mb-2">เพิ่มหัวข้อใหม่</h2>
@@ -307,7 +289,7 @@ function ManageCertificatesPage() {
             onSubmit={createCertificate}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end"
           >
-            {/* Input Fields (เหมือนเดิม) */}
+            {/* Input Fields */}
             <div className="form-control w-full">
               <label className="label" htmlFor="cert_code">
                 {" "}
@@ -392,17 +374,7 @@ function ManageCertificatesPage() {
         </div>
       </div>
 
-      {/* ----- แสดงข้อผิดพลาด (ลบออก) ----- */}
-      {/* <-- 7. ลบส่วนแสดง error นี้ออก
-      {error && (
-        <div role="alert" className="alert alert-error mb-4">
-          <X size={18} />
-          <span>{error}</span>
-        </div>
-      )}
-      */}
-
-      {/* ----- ช่องค้นหา (เหมือนเดิม) ----- */}
+      {/* ----- ช่องค้นหา ----- */}
       <div className="mb-4">
         <div className="form-control relative max-w-xs">
           <label htmlFor="searchInput" className="sr-only">
@@ -423,7 +395,7 @@ function ManageCertificatesPage() {
         </div>
       </div>
 
-      {/* ----- ตารางแสดงรายการ (เหมือนเดิม) ----- */}
+      {/* ----- ตารางแสดงรายการ ----- */}
       {isLoading ? (
         <div className="text-center p-10">
           <span className="loading loading-lg loading-spinner text-primary"></span>
@@ -478,7 +450,7 @@ function ManageCertificatesPage() {
                               )
                             }
                             className="btn btn-ghost btn-xs text-red-600 hover:bg-red-100 px-2"
-                            disabled={isDeleting} // ยังคง disable ปุ่มขณะทำงาน
+                            disabled={isDeleting}
                           >
                             <Trash size="14" />
                           </button>
@@ -502,7 +474,7 @@ function ManageCertificatesPage() {
         </div>
       )}
 
-      {/* ----- Modal แก้ไข (เหมือนเดิม) ----- */}
+      {/* ----- Modal แก้ไข  ----- */}
       {isModalOpen && editingCert && (
         <dialog
           id="edit_cert_modal"
@@ -521,7 +493,7 @@ function ManageCertificatesPage() {
               แก้ไขหัวข้อ: {editingCert.certificate_name}{" "}
             </h3>
             <form onSubmit={updateCertificate} className="space-y-4">
-              {/* Input fields (เหมือนเดิม) */}
+              {/* Input fields */}
               <div className="form-control">
                 <label className="label" htmlFor="editCodeModal">
                   {" "}

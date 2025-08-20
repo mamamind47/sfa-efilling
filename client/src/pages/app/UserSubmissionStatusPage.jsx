@@ -285,6 +285,10 @@ function UserSubmissionStatusPage() {
         return "บริจาคโลหิต";
       case "Certificate":
         return "e-Learning";
+      case "religious":
+        return "กิจกรรมทำนุบำรุงศาสนสถาน";
+      case "social-development":
+        return "กิจกรรมทำนุบำรุงและพัฒนาโรงเรียนและชุมชน";
       default:
         return type;
     }

@@ -243,9 +243,9 @@ const onDrop = (files) => {
     return (
       <div className="max-w-xl mx-auto p-6 space-y-6 text-center">
         <h2 className="text-xl font-semibold text-red-600">
-          คุณได้ส่งคำขอสำหรับโครงการ ต้นไม้ล้านต้น ล้านความดี ในปีการศึกษานี้แล้ว
+          คุณได้ส่งคำขอสำหรับโครงการ ต้นไม้ล้านต้น ล้านความดี
         </h2>
-        <p className="text-gray-600">ระบบอนุญาตให้ส่งได้เพียงครั้งเดียวต่อปี</p>
+        <p className="text-gray-600">ระบบอนุญาตให้ส่งได้เพียงครั้งเดียวเท่านั้น</p>
         <button
           className="btn bg-orange-500 hover:bg-orange-600 text-white mt-4"
           onClick={() => navigate("/app/submit/select")}

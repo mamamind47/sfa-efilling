@@ -98,11 +98,11 @@ model submission_status_logs {
   submission_id  String             @db.Char(36)
   status         submissions_status
   reason         String?            @db.VarChar(255)
-  changed_by     String             @db.Char(36)
+  changed_by     String?             @db.Char(36)
   changed_at     DateTime           @default(now()) @db.DateTime(0)
 
   submission     submissions        @relation(fields: [submission_id], references: [submission_id])
-  changed_by_user users             @relation("StatusChanger", fields: [changed_by], references: [user_id])
+  changed_by_user users?             @relation("StatusChanger", fields: [changed_by], references: [user_id])
 }
 
 model linked_scholarship {

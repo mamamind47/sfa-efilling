@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { GraduationCap } from "lucide-react";
-import logo from "../assets/SL_e-Filling.png";
+import logo from "../assets/SFA.png";
 import KMUTT from "../assets/KMUTT.png";
 
 const LoginPage = () => {
@@ -30,12 +30,8 @@ const LoginPage = () => {
       <div className="bg-white shadow-2xl rounded-2xl p-10 md:p-12 w-full max-w-lg text-center space-y-6">
         {/* โลโก้ */}
         <div className="flex items-center justify-center space-x-4">
-          <img
-            src={KMUTT}
-            alt="KMUTT Logo"
-            className="w-16 md:w-20"
-          />
-          <img src={logo} alt="SL e-Filling Logo" className="w-36 md:w-44" />
+          <img src={KMUTT} alt="KMUTT Logo" className="w-16 md:w-20" />
+          <img src={logo} alt="SFA Logo" className="w-36 md:w-50" />
         </div>
 
         {/* หัวข้อ */}
@@ -46,17 +42,10 @@ const LoginPage = () => {
         {/* ปุ่ม login */}
         <button
           onClick={handleLoginClick}
-          className="relative w-full px-5 py-3 rounded-lg bg-white border border-gray-300 text-black font-bold text-base hover:bg-gray-100 transition"
+          className="flex items-center justify-center gap-2 w-full px-5 py-3 rounded-lg bg-white border border-gray-300 text-black font-bold text-base hover:bg-gray-100 transition"
         >
-          {/* ไอคอนชิดซ้าย */}
-          <span className="absolute left-5 top-1/2 -translate-y-1/2">
-            <GraduationCap className="w-5 h-5" />
-          </span>
-
-          {/* ข้อความตรงกลาง */}
-          <span className="block text-center w-full">
-            Log in with KMUTT Account
-          </span>
+          <GraduationCap className="w-5 h-5" />
+          <span>Log in with KMUTT Account</span>
         </button>
       </div>
     </div>

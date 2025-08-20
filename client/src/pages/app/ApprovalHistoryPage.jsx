@@ -12,6 +12,7 @@ function ApprovalHistoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [openFiles, setOpenFiles] = useState(null);
 
   const categories = [
     "Certificate",
@@ -120,14 +121,18 @@ function ApprovalHistoryPage() {
           <table className="table table-zebra w-full text-sm">
             <thead className="bg-base-300">
               <tr>
-                <th>ชื่อ</th>
-                <th>ประเภท</th>
-                {shouldShowTopic && <th>หัวข้อ</th>}
-                <th>ปี</th>
-                <th>สถานะ</th>
-                <th>โดย</th>
-                <th>เหตุผล</th>
-                <th>ไฟล์</th>
+                <th className="w-[12%]">ชื่อ</th>
+                <th className="w-[8%]">ประเภท</th>
+                {shouldShowTopic && <th className="w-[14%]">หัวข้อ</th>}
+                <th className="w-[8%]">ปี</th>
+                <th className="w-[10%] whitespace-nowrap">วันที่ยื่น</th>
+                <th className="w-[10%] whitespace-nowrap">
+                  วันที่อนุมัติ/ปฏิเสธ
+                </th>
+                <th className="w-[10%] whitespace-nowrap">สถานะ</th>
+                <th className="w-[12%]">โดย</th>
+                <th className="w-[18%]">เหตุผล</th>
+                <th className="w-[8%]">ไฟล์</th>
               </tr>
             </thead>
             <tbody>
@@ -142,7 +147,22 @@ function ApprovalHistoryPage() {
               ) : (
                 submissions.map((s) => (
                   <tr key={s.submission_id}>
-                    <td>{s.users?.name || "-"}</td>
+                    <td>
+                      {" "}
+                      <button
+                        className="font-medium text-blue-600 hover:underline"
+                        onClick={() => {
+                          setSearchQuery(s.users?.username || "");
+                          setCurrentPage(1);
+                        }}
+                      >
+                        {s.users?.name || "-"}
+                      </button>
+                      <div className="text-xs text-gray-500 leading-tight">
+                        <div>{s.users?.username || "-"}</div>
+                        <div>{s.users?.faculty || "-"}</div>
+                      </div>
+                    </td>
                     <td>
                       {s.type === "Certificate"
                         ? s.certificate_type?.category || "-"
@@ -154,7 +174,27 @@ function ApprovalHistoryPage() {
                       </td>
                     )}
                     <td>{s.academic_years?.year_name || "-"}</td>
-                    <td>
+                    <td className="whitespace-nowrap">
+                      {s.created_at
+                        ? new Date(s.created_at).toLocaleDateString("th-TH", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "-"}
+                    </td>
+                    <td className="whitespace-nowrap">
+                      {s.status_logs?.[0]?.changed_at
+                        ? new Date(
+                            s.status_logs[0].changed_at
+                          ).toLocaleDateString("th-TH", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "-"}
+                    </td>
+                    <td className="whitespace-nowrap">
                       {s.status === "approved" ? (
                         <span className="text-green-600 font-medium">
                           อนุมัติแล้ว
@@ -171,14 +211,7 @@ function ApprovalHistoryPage() {
                       {s.submission_files?.length > 0 ? (
                         <button
                           className="btn btn-xs btn-outline px-2"
-                          onClick={() =>
-                            window.open(
-                              `${import.meta.env.VITE_FILE_BASE_URL}${
-                                s.submission_files[0].file_path
-                              }`,
-                              "_blank"
-                            )
-                          }
+                          onClick={() => setOpenFiles(s.submission_files)}
                           title={`ดูไฟล์ (${s.submission_files.length})`}
                         >
                           <Eye size={14} /> ({s.submission_files.length})
@@ -215,6 +248,46 @@ function ApprovalHistoryPage() {
           </button>
         </div>
       </div>
+      {/* Modal for attached files */}
+      {openFiles && (
+        <dialog className="modal modal-open">
+          <div className="modal-box max-w-md">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-orange-600 flex items-center gap-2">
+                <Eye size={20} /> รายการไฟล์แนบ
+              </h3>
+              <button
+                className="btn btn-sm btn-ghost text-error"
+                onClick={() => setOpenFiles(null)}
+              >
+                ✕
+              </button>
+            </div>
+            <ul className="space-y-2 max-h-64 overflow-y-auto pr-1">
+              {openFiles.map((file) => {
+                const fileName = file.file_path.split("/").pop();
+                return (
+                  <li
+                    key={file.id}
+                    className="bg-base-200 rounded px-3 py-2 hover:bg-base-300 transition"
+                  >
+                    <a
+                      href={`${import.meta.env.VITE_FILE_BASE_URL}${
+                        file.file_path
+                      }`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 font-medium hover:underline break-all"
+                    >
+                      🔗 {fileName}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </dialog>
+      )}
     </div>
   );
 }

@@ -18,6 +18,7 @@ import {
   FileUp,
   Hourglass,
   History,
+  UserPen,
 } from "lucide-react";
 
 const DashboardPage = () => <div className="p-4">Dashboard Page</div>;
@@ -36,6 +37,9 @@ import AdminUserStatsPage from "../pages/app/AdminUserStatsPage.jsx";
 import UserSubmissionStatusPage from "../pages/app/UserSubmissionStatusPage.jsx";
 import SubmitPlantPage from "../pages/app/SubmitPlantPage.jsx";
 import ApprovalHistoryPage from "../pages/app/ApprovalHistoryPage.jsx";
+import UserManagementPage from "../pages/app/UserManagementPage.jsx";
+import SubmitReligiousMaintainPage from "../pages/app/SubmitReligiousMaintainPage.jsx";
+import SubmitSocialDevelopmentPage from "../pages/app/SubmitSocialDevelopmentPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -73,6 +77,12 @@ const menuItemsData = (role) =>
           roles: ["admin"],
         },
         {
+          path: "/app/manage-users",
+          icon: UserPen,
+          text: "จัดการผู้ใช้",
+          roles: ["admin"],
+        },
+        {
           path: "/app/manage-certificates",
           icon: ClipboardEdit,
           text: "จัดการหัวข้อ",
@@ -105,9 +115,9 @@ const menuItemsData = (role) =>
       roles: ["admin"],
     },
     {
-      path: "/app/completed-certificates",
+      path: "/app/report",
       icon: ClipboardCheck,
-      text: "สำเร็จแล้ว",
+      text: "สถิตินักศึกษา",
       roles: ["admin"],
     },
   ].filter((item) => item.roles.includes(role));
@@ -182,9 +192,17 @@ function ProtectedLayout() {
                   element={<SubmitPlantPage />}
                 />
                 <Route
+                  path="submit/:academic_year_id/religious"
+                  element={<SubmitReligiousMaintainPage />}
+                />
+                <Route
+                  path="submit/:academic_year_id/social-development"
+                  element={<SubmitSocialDevelopmentPage />}
+                />
+                <Route
                   path="submission-status"
                   element={<UserSubmissionStatusPage />}
-                  />
+                />
               </>
             )}
 
@@ -204,10 +222,7 @@ function ProtectedLayout() {
                   path="pending-approvals"
                   element={<PendingApprovalsPage />}
                 />
-                <Route
-                  path="completed-certificates"
-                  element={<AdminUserStatsPage />}
-                />
+                <Route path="report" element={<AdminUserStatsPage />} />
                 <Route
                   path="upload-scholarship"
                   element={<UploadScholarshipPage />}
@@ -215,7 +230,8 @@ function ProtectedLayout() {
                 <Route
                   path="history-approvals"
                   element={<ApprovalHistoryPage />}
-                  />
+                />
+                <Route path="manage-users" element={<UserManagementPage />} />
               </>
             )}
 

@@ -17,6 +17,7 @@ import {
   FileUp,
   Hourglass,
   History,
+  UserPen,
 } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
 
@@ -54,6 +55,12 @@ const menuItemsData = (role) =>
           roles: ["admin"],
         },
         {
+          path: "/app/manage-users",
+          icon: UserPen,
+          text: "จัดการผู้ใช้",
+          roles: ["admin"],
+        },
+        {
           path: "/app/manage-certificates",
           icon: ClipboardEdit,
           text: "จัดการหัวข้อ",
@@ -86,9 +93,9 @@ const menuItemsData = (role) =>
       roles: ["admin"],
     },
     {
-      path: "/app/completed-certificates",
+      path: "/app/report",
       icon: ClipboardCheck,
-      text: "สำเร็จแล้ว",
+      text: "สถิตินักศึกษา",
       roles: ["admin"],
     },
   ].filter((item) => item.roles.includes(role));

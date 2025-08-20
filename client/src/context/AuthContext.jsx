@@ -1,9 +1,18 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from 'react';
-//import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { jwtDecode } from "jwt-decode";
 
 const AuthContext = createContext(undefined);
+
+const isTokenExpired = (token) => {
+  try {
+    const { exp } = jwtDecode(token);
+    return Date.now() >= exp * 1000;
+  } catch {
+    return true;
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('authToken'));
@@ -11,11 +20,15 @@ export const AuthProvider = ({ children }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (token && !role) {
-      const storedRole = localStorage.getItem('userRole');
-      if (storedRole) setRole(storedRole);
-      else console.warn('Token exists but role missing.');
-    } else if (!token) {
+    if (token) {
+      if (isTokenExpired(token)) {
+        logout();
+      } else if (!role) {
+        const storedRole = localStorage.getItem('userRole');
+        if (storedRole) setRole(storedRole);
+        else console.warn('Token exists but role missing.');
+      }
+    } else {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userRole');
       setRole(null);

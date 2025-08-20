@@ -1,10 +1,9 @@
-// src/pages/app/SubmitBloodDonatePage.jsx
-import React, { useState, useRef, useEffect } from "react";
+// src/pages/app/SubmitReligiousMaintainPage.jsx
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDropzone } from "react-dropzone";
 import {
   UploadCloud,
-  FileText,
   CheckCircle2,
   X,
   RotateCcw,
@@ -15,10 +14,9 @@ import "dayjs/locale/th";
 import toast from "react-hot-toast";
 dayjs.locale("th");
 
-function SubmitBloodDonatePage() {
+function SubmitReligiousMaintainPage() {
   const { academic_year_id } = useParams();
   const navigate = useNavigate();
-  const fileInputRef = useRef();
 
   const [acceptedFiles, setAcceptedFiles] = useState([]);
   const [agreed, setAgreed] = useState(false);
@@ -29,14 +27,13 @@ function SubmitBloodDonatePage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [academicPeriod, setAcademicPeriod] = useState(null);
 
-
   useEffect(() => {
     const checkExistingSubmission = async () => {
       try {
         const res = await apiClient.get("/submission");
         const existing = res.data.find(
           (item) =>
-            item.type === "BloodDonate" &&
+            item.type === "religious" &&
             item.academic_year_id === academic_year_id
         );
         if (existing) {
@@ -70,30 +67,28 @@ function SubmitBloodDonatePage() {
     fetchAcademicPeriod();
   }, [academic_year_id]);
 
+  const onDrop = (files) => {
+    if (!agreed) return;
 
-const onDrop = (files) => {
-  if (!agreed) return;
+    const maxFiles = 10;
+    const maxSizeMB = 10;
+    const newFiles = [];
 
-  const maxFiles = 10;
-  const maxSizeMB = 10;
-  const newFiles = [];
-
-  if (acceptedFiles.length + files.length > maxFiles) {
-    toast.error("อัปโหลดได้สูงสุดไม่เกิน 10 ไฟล์");
-    return;
-  }
-
-  for (let file of files) {
-    if (file.size > maxSizeMB * 1024 * 1024) {
-      toast.error(`ไฟล์ ${file.name} มีขนาดเกิน 10MB`);
+    if (acceptedFiles.length + files.length > maxFiles) {
+      toast.error("อัปโหลดได้สูงสุดไม่เกิน 10 ไฟล์");
       return;
     }
-    newFiles.push(file);
-  }
 
-  setAcceptedFiles((prev) => [...prev, ...newFiles]);
-};
+    for (let file of files) {
+      if (file.size > maxSizeMB * 1024 * 1024) {
+        toast.error(`ไฟล์ ${file.name} มีขนาดเกิน 10MB`);
+        return;
+      }
+      newFiles.push(file);
+    }
 
+    setAcceptedFiles((prev) => [...prev, ...newFiles]);
+  };
 
   const removeFile = (index) => {
     setAcceptedFiles((prev) => prev.filter((_, i) => i !== index));
@@ -114,7 +109,7 @@ const onDrop = (files) => {
 
     const formData = new FormData();
     formData.append("academic_year_id", academic_year_id);
-    formData.append("type", "BloodDonate");
+    formData.append("type", "religious");
     formData.append("hours", parseInt(hours));
     acceptedFiles.forEach((file) => formData.append("files", file));
 
@@ -124,7 +119,7 @@ const onDrop = (files) => {
       setShowSuccess(true);
       setAlreadySubmitted(false);
       setAcceptedFiles([]);
-    } catch (err) {
+    } catch {
       alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
     } finally {
       setUploading(false);
@@ -250,7 +245,7 @@ const onDrop = (files) => {
     return (
       <div className="max-w-xl mx-auto p-6 space-y-6 text-center">
         <h2 className="text-xl font-semibold text-red-600">
-          คุณได้ส่งคำขอสำหรับการบริจาคโลหิตในปีการศึกษานี้แล้ว
+          คุณได้ยื่นกิจกรรมทำนุงบำรุงศาสนสถานในปีการศึกษานี้แล้ว
         </h2>
         <p className="text-gray-600">ระบบอนุญาตให้ส่งได้เพียงครั้งเดียวต่อปี</p>
         <button
@@ -268,16 +263,16 @@ const onDrop = (files) => {
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold text-center">
-        อัปโหลดใบรับรองการบริจาคโลหิต
+        อัปโหลดหลักฐานในการทำกิจกรรมทำนุบำรุงศาสนสถาน
       </h1>
 
       <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-        โปรดอัปโหลดบัตรประจำตัวผู้บริจาคโลหิตทั้งหน้าและหลัง พร้อมรูปถ่าย
+        โปรดอัปโหลดแบบฟอร์มรับรองการทำกิจกรรมพร้อมลายมือชื่อ
+        พร้อมรูปถ่ายขณะทำกิจกรรม
         <br />
-        การส่งขออนุมัติชั่วโมงจิตอาสาสามารถส่งได้ครั้งเดียวต่อปีการศึกษาเท่านั้น
+        การส่งขออนุมัติชั่วโมงจิตอาสาประเภทการทำกิจกรรมทำนุบำรุงศาสนสถาน
+        สามารถทำได้ครั้งเดียวต่อปีการศึกษาเท่านั้น (สูงสุด 6 ชั่วโมงต่อปีการศึกษา)
         <br />
-        (แต่สามารถบริจาคได้หลายครั้ง
-        โปรดทำให้ครบครั้งที่คาดว่าจะทำแล้วอัปโหลดทีเดียว)
         {academicPeriod && (
           <p className="text-red-600 mt-2">
             * กิจกรรมที่ส่งต้องอยู่ในช่วงวันที่ {academicPeriod.start} ถึง{" "}
@@ -376,4 +371,4 @@ const onDrop = (files) => {
   );
 }
 
-export default SubmitBloodDonatePage;
+export default SubmitReligiousMaintainPage;

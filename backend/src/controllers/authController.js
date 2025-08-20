@@ -76,18 +76,9 @@ exports.callback = async (req, res) => {
     let userRoleForToken = "";
 
     if (!user) {
-      message = "User registered successfully";
-      const initialRole = "student";
-      userRoleForToken = initialRole;
-      user = await prisma.users.create({
-        data: {
-          username: usernameForDb,
-          name: name || usernameForDb,
-          email: emailFromUpn,
-          role: initialRole,
-          refreshToken: newRefreshToken,
-        },
-      });
+      return res
+        .status(403)
+        .json({ error: "บัญชีของคุณยังไม่ได้รับสิทธิ์เข้าใช้งาน" });
     } else {
       message = "User login successful";
       userRoleForToken = user.role;
@@ -116,6 +107,7 @@ exports.callback = async (req, res) => {
               name: `${data.firstnameTh} ${data.lastnameTh}`,
               faculty: data.facultyNameTh,
               major: data.fieldNameTh,
+              phone: data.studentMobileNo || null,
             },
           });
         }

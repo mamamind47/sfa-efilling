@@ -12,6 +12,8 @@ import {
   PiggyBank,
   LineChart,
   TreePine,
+  Church,
+  School,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
@@ -116,7 +118,7 @@ function SelectSubmissionTypePage() {
   if (!selectedYearId) {
     return (
       <div className="p-4 text-center text-red-600 font-semibold text-lg">
-        ขออภัย ขณะนี้ไม่อยู่ในช่วงให้ยื่นเอกสาร หากท่านไม่ได้ยื่ยเอกสารภายในระยะเวลาที่กำหนด โปรดติดต่อเจ้าหน้าที่ ที่เบอร์ 02-470-9982
+        ขออภัย ขณะนี้ไม่อยู่ในช่วงให้ยื่นเอกสาร หากท่านไม่ได้ยื่นเอกสารภายในระยะเวลาที่กำหนด โปรดติดต่อเจ้าหน้าที่ ที่เบอร์ 02-470-9982
       </div>
     );
   }
@@ -299,7 +301,7 @@ function SelectSubmissionTypePage() {
                   AOM YOUNG
                 </p>
                 <p className="text-sm text-base-content">
-                  แนบสลิปการลงทุน และ Statement (ถ้ามี)
+                  แนบสลิปการลงทุน และ รายการเดินบัญชีกองทุน (Statement)
                 </p>
               </div>
             </div>
@@ -321,6 +323,60 @@ function SelectSubmissionTypePage() {
               <div>
                 <p className="text-base font-semibold text-base-content">
                   ต้นไม้ล้านต้น ล้านความดี
+                </p>
+                <p className="text-sm text-base-content">
+                  แนบรูปภาพขณะปลูกต้นไม้ และเกียรติบัตร
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="shrink-0" />
+          </div>
+        </motion.button>
+
+        <motion.button
+          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          onClick={() => navigate(`/app/submit/${selectedYearId}/religious`)}
+        >
+          <div className="card-body flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <Church size={40} className="text-yellow-600" />
+              <div>
+                <p className="text-base font-semibold text-base-content">
+                  กิจกรรมช่วยเหลือพัฒนาศาสนสถาน
+                </p>
+                <p className="text-sm text-base-content">
+                  แนบรูปภาพขณะทำกิจกรรม พร้อมเอกสารแบบฟอร์มจิตอาสา
+                </p>
+              </div>
+            </div>
+            <ArrowRight className="shrink-0" />
+          </div>
+        </motion.button>
+
+        <motion.button
+          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
+          whileHover={{ scale: 1.03 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          onClick={() => navigate(`/app/submit/${selectedYearId}/social-development`)}
+        >
+          <div className="card-body flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <School size={40} className="text-blue-600" />
+              <div>
+                <p className="text-base font-semibold text-base-content">
+                  กิจกรรมพัฒนาโรงเรียน ชุมชนและสังคม
+                </p>
+                <p className="text-sm text-base-content">
+                  เฉพาะกิจกรรมที่ไม่ใช่เป็นกิจกรรมมหาวิทยาลัยเท่านั้น
+                </p>
+                <p className="text-sm text-base-content">
+                  หากเป็นกิจกรรมมหาวิทยาลัย โปรดติดต่อผู้จัดงาน
                 </p>
               </div>
             </div>

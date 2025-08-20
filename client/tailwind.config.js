@@ -1,10 +1,10 @@
 // tailwind.config.js
+// eslint-disable-next-line no-undef
 const defaultTheme = require("tailwindcss/defaultTheme"); // <--- เพิ่ม import นี้
 
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: "class",
   theme: {
     extend: {
       // เพิ่มส่วนนี้
@@ -14,6 +14,10 @@ export default {
       },
     },
   },
+  // eslint-disable-next-line no-undef
   plugins: [require("daisyui")],
   // daisyui config (ถ้ามี)
+  daisyui: {
+    themes: ["light"], // ใช้เฉพาะธีม light
+  },
 };

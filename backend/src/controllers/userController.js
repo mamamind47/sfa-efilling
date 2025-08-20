@@ -75,9 +75,7 @@ exports.getUserApprovedHours = async (req, res) => {
     }));
 
     res.json(finalResult);
-    console.log("✅ Fetched user hours successfully:", finalResult);
   } catch (error) {
-    console.error("❌ Failed to fetch user hours:", error);
     res.status(500).json({ error: "Failed to fetch user hours" });
   }
 };
@@ -109,9 +107,7 @@ exports.getUserScholarshipStatus = async (req, res) => {
     }));
 
     res.json(result);
-    console.log("✅ Fetched flat scholarship list:", result);
   } catch (error) {
-    console.error("❌ Failed to fetch scholarship list:", error);
     res.status(500).json({ error: "Failed to fetch scholarship status" });
   }
 };

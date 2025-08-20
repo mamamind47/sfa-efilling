@@ -1,31 +1,6 @@
 const prisma = require("../config/database");
 const ExcelJS = require("exceljs");
 
-exports.getActiveStudents = async (req, res) => {
-  try {
-    const { studentIds } = req.body;
-
-    if (!Array.isArray(studentIds)) {
-      return res
-        .status(400)
-        .json({ error: "Invalid input. studentIds must be an array." });
-    }
-
-    const activeStatuses = await Promise.all(
-      studentIds.map(async (user_id) => {
-        const student = await prisma.users.findUnique({
-          where: { user_id },
-        });
-        return { user_id, isActive: !!student };
-      })
-    );
-    res.status(200).json(activeStatuses);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-};
-
 exports.getUserStatistics = async (req, res) => {
   try {
     // 1. Extract Filters, Pagination, and Search from Query Params
@@ -118,7 +93,7 @@ exports.getUserStatistics = async (req, res) => {
     // --- End Search Condition ---
 
     // 5. Fetch Paginated User IDs matching base filters AND Search
-    const usersForPage = await prisma.users.findMany({
+    const allFilteredUsers = await prisma.users.findMany({
       where: userWhereClause,
       select: {
         user_id: true,
@@ -128,70 +103,36 @@ exports.getUserStatistics = async (req, res) => {
         major: true,
       },
       orderBy: { name: "asc" },
-      skip: skip,
-      take: limitNum,
     });
 
-    const userIdsOnPage = usersForPage.map((u) => u.user_id);
-    const usernamesOnPage = usersForPage.map((u) => u.username);
+    const allUserIds = allFilteredUsers.map((u) => u.user_id);
+    const allUsernames = allFilteredUsers.map((u) => u.username);
 
-    // If no users match filters + search on this page, calculate total for accurate pagination info
-    if (userIdsOnPage.length === 0) {
-      const totalMatchingItems = await prisma.users.count({
-        where: userWhereClause,
-      });
-      return res.status(200).json({
-        data: [],
-        pagination: {
-          currentPage: pageNum,
-          totalPages: Math.ceil(totalMatchingItems / limitNum),
-          totalItems: totalMatchingItems,
-          limit: limitNum,
-        },
-        // Also send filters in the empty response
-        filters: {
-          academicYears: allAcademicYears.map(
-            ({ academic_year_id, year_name }) => ({
-              id: academic_year_id,
-              name: year_name,
-            })
-          ),
-          faculties: availableFaculties,
-          selectedAcademicYear: {
-            id: targetAcademicYearId,
-            name: targetAcademicYearName,
-          },
-        },
-      });
-    }
 
     // 6. Fetch Detailed Statistics Data (MODLINK, Submissions, Scholarship)
     const [modLinkHoursData, submissionHoursData, scholarshipData] =
       await Promise.all([
         prisma.linked_volunteer.findMany({
           where: {
-            user_id: { in: usernamesOnPage },
+            user_id: { in: allUsernames },
             year: targetAcademicYearName,
           },
           select: { user_id: true, hours: true },
         }),
         prisma.submissions.findMany({
           where: {
-            user_id: { in: userIdsOnPage },
+            user_id: { in: allUserIds },
             academic_year_id: targetAcademicYearId,
             status: "approved",
           },
-          select: { user_id: true, type: true, hours: true }, // Use 'hours'
+          select: { user_id: true, type: true, hours: true },
         }),
         prisma.linked_scholarship.findMany({
           where: {
-            student_id: { in: usernamesOnPage },
+            student_id: { in: allUsernames },
             academic_year: targetAcademicYearName,
           },
-          select: {
-            student_id: true,
-            type: true, // Select scholarship type
-          },
+          select: { student_id: true, type: true },
         }),
       ]);
 
@@ -218,7 +159,7 @@ exports.getUserStatistics = async (req, res) => {
     // --- End Processing ---
 
     // 7. Combine Data and Apply Post-Fetch Filters (Hour Status, Scholarship Status)
-    let combinedResults = usersForPage.map((user) => {
+    let combinedResults = allFilteredUsers.map((user) => {
       const userSubmissions = submissionHoursMap[user.user_id] || {};
       const eLearningHours = userSubmissions["Certificate"] || 0;
       const bloodDonateHours = userSubmissions["BloodDonate"] || 0;
@@ -263,7 +204,7 @@ exports.getUserStatistics = async (req, res) => {
     } else if (hourStatus === "incomplete") {
       combinedResults = combinedResults.filter((user) => user.totalHours < 36);
     }
-    // Filter based on new display string
+
     if (scholarshipStatus === "applied") {
       combinedResults = combinedResults.filter(
         (user) => user.scholarshipStatusDisplay !== "ยังไม่สมัคร"
@@ -275,31 +216,27 @@ exports.getUserStatistics = async (req, res) => {
     }
 
     // 8. Fetch Total Count matching ALL filters including Search for accurate pagination
-    const totalItems = await prisma.users.count({
-      where: userWhereClause, // Where clause now includes search and faculty
-    });
+    const totalItems = combinedResults.length;
     const totalPages = Math.ceil(totalItems / limitNum);
+    const paginatedResults = combinedResults.slice(skip, skip + limitNum);
 
     // 9. Structure and Send Response
     res.status(200).json({
-      data: combinedResults, // Data for the current page, after all filters
+      data: paginatedResults,
       pagination: {
         currentPage: pageNum,
-        totalPages: totalPages,
-        totalItems: totalItems,
+        totalPages,
+        totalItems,
         limit: limitNum,
       },
       filters: {
-        // ส่ง Array ของปีการศึกษา (จัดรูปแบบให้มี id, name)
         academicYears: allAcademicYears.map(
           ({ academic_year_id, year_name }) => ({
             id: academic_year_id,
             name: year_name,
           })
         ),
-        // ส่ง Array ของชื่อคณะ
         faculties: availableFaculties,
-        // ส่งข้อมูลปีการศึกษาที่ใช้แสดงผลในหน้านี้
         selectedAcademicYear: {
           id: targetAcademicYearId,
           name: targetAcademicYearName,
@@ -374,6 +311,8 @@ exports.getUserStatisticsExport = async (req, res) => {
         name: true,
         faculty: true,
         major: true,
+        email: true,
+        phone: true,
       },
       orderBy: { name: "asc" },
       // NO skip, NO take
@@ -469,6 +408,8 @@ exports.getUserStatisticsExport = async (req, res) => {
         userId: user.user_id,
         username: user.username,
         name: user.name,
+        email: user.email,
+        phone: user.phone,
         faculty: user.faculty,
         major: user.major,
         academicYearName: targetAcademicYearName,
@@ -523,6 +464,8 @@ exports.getUserStatisticsExport = async (req, res) => {
     worksheet.columns = [
       { header: "ชื่อ-สกุล", key: "name", width: 30 },
       { header: "รหัสนักศึกษา", key: "username", width: 15 },
+      { header: "อีเมล", key: "email", width: 30 },
+      { header: "เบอร์โทรศัพท์", key: "phone", width: 15 },
       { header: "คณะ", key: "faculty", width: 30 },
       { header: "สาขาวิชา", key: "major", width: 30 },
       {
@@ -571,7 +514,7 @@ exports.getUserStatisticsExport = async (req, res) => {
           font: { bold: true },
         },
       },
-      { header: "ประเภททุน/สถานะ", key: "scholarshipStatusDisplay", width: 20 }, // Use new key/header
+      { header: "ประเภททุน/สถานะ", key: "scholarshipStatusDisplay", width: 20 },
     ];
 
     // Add Rows
