@@ -14,7 +14,9 @@ const certificateRoutes = require("./routes/certificateRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
 const linkRoutes = require("./routes/linkRoutes");
 const userRoutes = require("./routes/userRoutes");
-const adminRoutes = require("./routes/adminRoutes"); 
+const adminRoutes = require("./routes/adminRoutes");
+const sseRoutes = require("./routes/sseRoutes");
+const emailRoutes = require("./routes/emailRoutes");
 
 
 const app = express();
@@ -39,17 +41,20 @@ app.get("/", (req, res) => {
   res.send("🚀 KMUTT SFA e-filling API is Running!");
 });
 
+// --- SSE Routes (no auth middleware) ---
+app.use("/api", sseRoutes);
+
 // --- Apply Authentication Middleware ---
 app.use(authenticateToken); 
 
 // --- Protected Routes (ต้องการ Login) ---
-// app.use("/api/admin", adminRoutes); 
 app.use("/api/academic", academicRoutes);
 app.use("/api/certificate", certificateRoutes);
 app.use("/api/submission", submissionRoutes);
 app.use("/api/link", linkRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/email", emailRoutes);
 
 
 module.exports = app;

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Sarabun', 'Tahoma', sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+        }
+        
+        .email-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c5282, #2b6cb0);
+            background-color: #2c5282; /* fallback for email clients that don't support gradients */
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header-logo {
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 26px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 40px 35px;
+        }
+        
+        .content h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 22px;
+            font-weight: 500;
+            border-bottom: 3px solid #2c5282;
+            padding-bottom: 12px;
+        }
+        
+        .content p {
+            margin-bottom: 18px;
+            font-size: 16px;
+            color: #495057;
+            text-align: justify;
+        }
+        
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #2c5282, #2b6cb0);
+            color: white;
+            padding: 14px 28px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 16px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(44, 82, 130, 0.3);
+        }
+        
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        
+        .info-box h4 {
+            color: #1565c0;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        
+        .warning-box h4 {
+            color: #856404;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .success-box {
+            background-color: #d4edda;
+            border-left: 4px solid #28a745;
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        
+        .success-box h4 {
+            color: #155724;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .footer {
+            background-color: #343a40;
+            color: #f8f9fa;
+            padding: 35px;
+            text-align: center;
+        }
+        
+        .footer-content {
+            margin-bottom: 20px;
+        }
+        
+        .footer h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            font-size: 14px;
+            color: #adb5bd;
+            margin-bottom: 5px;
+        }
+        
+        .disclaimer {
+            background-color: #495057;
+            padding: 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e9ecef;
+            border: 1px solid #6c757d;
+        }
+        
+        .disclaimer strong {
+            color: #ffffff;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .contact-info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ced4da;
+        }
+        
+        .contact-info strong {
+            color: #f8f9fa;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            
+            .header, .content, .footer {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .content h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="header-logo">
+                <h1>{{headerTitle}}</h1>
+                <p>{{headerSubtitle}}</p>
+            </div>
+        </div>
+        
+        <div class="content">
+            {{content}}
+        </div>
+        
+        <div class="footer">
+            <div class="footer-content">
+                <h3> ระบบยื่นเอกสารนักศึกษาทุน กยศ. มจธ. | Volunteer Student Loan e-Filling (VSF) </h3>
+                <p>มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี</p>
+                <p>King Mongkut's University of Technology Thonburi</p>
+            </div>
+            
+            <div class="disclaimer">
+                อีเมลนี้ส่งจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ<br>
+                หากมีข้อสงสัยหรือต้องการความช่วยเหลือ กรุณาติดต่อ 02-470-9982
+            </div>
+        </div>
+    </div>
+</body>
+</html>

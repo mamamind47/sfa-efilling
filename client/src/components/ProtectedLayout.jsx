@@ -19,9 +19,10 @@ import {
   Hourglass,
   History,
   UserPen,
+  BarChart3,
+  Mail,
 } from "lucide-react";
 
-const DashboardPage = () => <div className="p-4">Dashboard Page</div>;
 import ManageAcademicYearPage from "../pages/app/ManageAcademicYearPage.jsx";
 import ManageCertificatesPage from "../pages/app/ManageCertificatesPage.jsx";
 import UploadModLinkPage from "../pages/app/UploadModLinkPage.jsx";
@@ -40,6 +41,8 @@ import ApprovalHistoryPage from "../pages/app/ApprovalHistoryPage.jsx";
 import UserManagementPage from "../pages/app/UserManagementPage.jsx";
 import SubmitReligiousMaintainPage from "../pages/app/SubmitReligiousMaintainPage.jsx";
 import SubmitSocialDevelopmentPage from "../pages/app/SubmitSocialDevelopmentPage.jsx";
+import DashboardPage from "../pages/app/DashboardPage.jsx";
+import SendEmailPage from "../pages/app/SendEmailPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -118,6 +121,12 @@ const menuItemsData = (role) =>
       path: "/app/report",
       icon: ClipboardCheck,
       text: "สถิตินักศึกษา",
+      roles: ["admin"],
+    },
+    {
+      path: "/app/send-email",
+      icon: Mail,
+      text: "ส่งอีเมล",
       roles: ["admin"],
     },
   ].filter((item) => item.roles.includes(role));
@@ -232,6 +241,7 @@ function ProtectedLayout() {
                   element={<ApprovalHistoryPage />}
                 />
                 <Route path="manage-users" element={<UserManagementPage />} />
+                <Route path="send-email" element={<SendEmailPage />} />
               </>
             )}
 

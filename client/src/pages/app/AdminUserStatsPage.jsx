@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Download,
   Edit,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -53,6 +55,7 @@ function AdminUserStatsPage() {
   const [selectedScholarship, setSelectedScholarship] = useState("ยังไม่สมัคร");
   const [showModal, setShowModal] = useState(false);
   const [editingUserInfo, setEditingUserInfo] = useState(null);
+  const [expandedRows, setExpandedRows] = useState({});
 
   useEffect(() => {
     if (initialMount.current) {
@@ -135,6 +138,13 @@ function AdminUserStatsPage() {
   const handleFilterChange = (setter) => (e) => {
     setter(e.target.value);
     setPage(1);
+  };
+
+  const toggleRowExpansion = (userId) => {
+    setExpandedRows(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
   };
 
   const handleAcademicYearChange = (e) => {
@@ -244,38 +254,38 @@ function AdminUserStatsPage() {
   return (
     <div className="p-4 md:p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* --- Header and Export Button --- */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white rounded-lg shadow-sm border p-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-2xl font-semibold text-gray-900">
             ข้อมูลสถิตินักศึกษา
           </h1>
-          <p className="text-sm text-gray-600">
-            ปีการศึกษา: {selectedAcademicYearName}
+          <p className="text-sm text-gray-600 mt-1">
+            ปีการศึกษา: <span className="font-medium text-gray-900">{selectedAcademicYearName}</span>
           </p>
         </div>
         {/* Updated Export Button */}
         <button
-          className={`btn btn-success btn-sm text-white shadow hover:bg-green-700 ${
-            isExporting ? "loading" : ""
-          }`} // Use loading class
+          className={`px-5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded shadow-sm transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+            isExporting ? "cursor-not-allowed" : ""
+          }`}
           onClick={handleExport}
-          disabled={isLoading || totalItems === 0 || isExporting} // Disable while loading, no items, or exporting
+          disabled={isLoading || totalItems === 0 || isExporting}
         >
           {isExporting ? (
-            <Loader2 size={16} className="animate-spin mr-1" />
+            <Loader2 size={16} className="animate-spin" />
           ) : (
-            <Download size={16} className="mr-1" />
+            <Download size={16} />
           )}
           {isExporting ? "กำลังดาวน์โหลด..." : "ดาวน์โหลด Excel"}
         </button>
       </div>
 
       {/* --- Filters --- */}
-      <div className="p-4 bg-white rounded-lg shadow grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+      <div className="p-6 bg-white rounded-lg shadow-sm border grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
         {/* Search Input */}
         <div className="form-control w-full lg:col-span-1">
-          <label className="label pt-0 pb-1">
-            <span className="label-text text-xs font-medium text-gray-700">
+          <label className="label pt-0 pb-2">
+            <span className="label-text text-sm font-medium text-gray-700">
               ค้นหา
             </span>
           </label>
@@ -283,25 +293,24 @@ function AdminUserStatsPage() {
             <input
               type="text"
               placeholder="ชื่อ, รหัสนักศึกษา..."
-              className="input input-bordered input-sm w-full pr-10 focus:ring-indigo-500 focus:border-indigo-500"
+              className="input w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-colors duration-200 pr-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <span className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-              {" "}
-              <Search size={16} className="text-gray-400" />{" "}
+              <Search size={16} className="text-gray-400" />
             </span>
           </div>
         </div>
         {/* Academic Year Filter */}
         <div className="form-control w-full">
-          <label className="label pt-0 pb-1">
-            <span className="label-text text-xs font-medium text-gray-700">
+          <label className="label pt-0 pb-2">
+            <span className="label-text text-sm font-medium text-gray-700">
               ปีการศึกษา
             </span>
           </label>
           <select
-            className="select select-bordered select-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="select w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-colors duration-200"
             value={selectedAcademicYearId}
             onChange={handleAcademicYearChange}
             disabled={isLoading || academicYears.length === 0}
@@ -309,21 +318,20 @@ function AdminUserStatsPage() {
             <option value="">ปีล่าสุด</option>
             {academicYears.map((ay) => (
               <option key={ay.id} value={ay.id}>
-                {" "}
-                {ay.name}{" "}
+                {ay.name}
               </option>
             ))}
           </select>
         </div>
         {/* Faculty Filter */}
         <div className="form-control w-full">
-          <label className="label pt-0 pb-1">
-            <span className="label-text text-xs font-medium text-gray-700">
+          <label className="label pt-0 pb-2">
+            <span className="label-text text-sm font-medium text-gray-700">
               คณะ
             </span>
           </label>
           <select
-            className="select select-bordered select-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="select w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-colors duration-200"
             value={selectedFaculty}
             onChange={handleFilterChange(setSelectedFaculty)}
             disabled={isLoading || faculties.length === 0}
@@ -331,21 +339,20 @@ function AdminUserStatsPage() {
             <option value="all">ทุกคณะ</option>
             {faculties.map((f) => (
               <option key={f} value={f}>
-                {" "}
-                {f}{" "}
+                {f}
               </option>
             ))}
           </select>
         </div>
         {/* Hour Status Filter */}
         <div className="form-control w-full">
-          <label className="label pt-0 pb-1">
-            <span className="label-text text-xs font-medium text-gray-700">
+          <label className="label pt-0 pb-2">
+            <span className="label-text text-sm font-medium text-gray-700">
               สถานะชั่วโมง
             </span>
           </label>
           <select
-            className="select select-bordered select-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="select w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-colors duration-200"
             value={selectedHourStatus}
             onChange={handleFilterChange(setSelectedHourStatus)}
             disabled={isLoading}
@@ -357,13 +364,13 @@ function AdminUserStatsPage() {
         </div>
         {/* Scholarship Status Filter */}
         <div className="form-control w-full">
-          <label className="label pt-0 pb-1">
-            <span className="label-text text-xs font-medium text-gray-700">
+          <label className="label pt-0 pb-2">
+            <span className="label-text text-sm font-medium text-gray-700">
               สถานะทุน
             </span>
           </label>
           <select
-            className="select select-bordered select-sm focus:ring-indigo-500 focus:border-indigo-500"
+            className="select w-full px-4 py-2.5 text-sm border border-gray-300 rounded-lg focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-colors duration-200"
             value={selectedScholarshipStatus}
             onChange={handleFilterChange(setSelectedScholarshipStatus)}
             disabled={isLoading}
@@ -377,117 +384,192 @@ function AdminUserStatsPage() {
 
       {/* --- Loading and Error Display --- */}
       {isLoading && (
-        <div className="text-center py-10">
-          <Loader2 className="animate-spin inline-block w-8 h-8 text-blue-500" />
-          <p className="text-gray-500 mt-2">กำลังโหลดข้อมูล...</p>
+        <div className="bg-white rounded-lg shadow-sm border p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+            <Loader2 className="animate-spin w-8 h-8 text-gray-600" />
+          </div>
+          <p className="text-gray-700 font-medium">กำลังโหลดข้อมูล...</p>
+          <p className="text-gray-500 text-sm mt-1">กรุณารอสักครู่</p>
         </div>
       )}
       {error && !isLoading && (
-        <div
-          role="alert"
-          className="alert alert-error text-white my-4 shadow-md"
-        >
-          <AlertCircle size={20} />
-          <span className="font-semibold">เกิดข้อผิดพลาด:</span>
-          <span className="ml-2">{error}</span>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-600" />
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">เกิดข้อผิดพลาด</h3>
+              <div className="mt-2 text-sm text-red-700">{error}</div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* --- Table --- */}
       {!isLoading && !error && (
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="overflow-x-auto">
             <table className="table w-full text-sm">
-              <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+              <thead className="bg-gray-100 border-b">
                 <tr>
-                  <th className="p-3 text-left">นักศึกษา</th>
-                  <th className="p-3 text-center">MODLINK</th>
-                  <th className="p-3 text-center">e-Learning</th>
-                  <th className="p-3 text-center">บริจาคเลือด</th>
-                  <th className="p-3 text-center">กอช.</th>
-                  <th className="p-3 text-center">AOM YOUNG</th>
-                  <th className="p-3 text-center">อื่นๆ (ชม.)</th>
-                  <th className="p-3 text-center font-bold">รวม (ชม.)</th>
-                  <th className="p-3 text-center">สถานะทุน/ประเภท</th>
-                  {/* Changed Header */}
+                  <th className="p-3 text-left font-medium text-gray-700 text-sm">นักศึกษา</th>
+                  <th className="p-3 text-center font-medium text-gray-700 text-sm">MOD LINK</th>
+                  <th className="p-3 text-center font-medium text-gray-700 text-sm">ในระบบ</th>
+                  <th className="p-3 text-center font-medium text-gray-900 text-sm">รวมชั่วโมง</th>
+                  <th className="p-3 text-center font-medium text-gray-700 text-sm">สถานะทุน</th>
+                  <th className="p-3 text-center font-medium text-gray-700 text-sm">รายละเอียด</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {statsData.length > 0 ? (
                   statsData.map((u) => (
-                    <tr key={u.userId} className="hover:bg-gray-50">
-                      <td className="p-3 align-top">
-                        <div className="font-medium text-gray-900">
-                          {u.name}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {u.username}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {u.faculty || "-"}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {u.major || "-"}
-                        </div>
-                      </td>
-                      <td className="p-3 text-center tabular-nums">
-                        {u.modLinkHours ?? 0}
-                      </td>
-                      <td className="p-3 text-center tabular-nums">
-                        {u.eLearningHours ?? 0}
-                      </td>
-                      <td className="p-3 text-center tabular-nums">
-                        {u.bloodDonateHours ?? 0}
-                      </td>
-                      <td className="p-3 text-center tabular-nums">
-                        {u.nsfHours ?? 0}
-                      </td>
-                      <td className="p-3 text-center tabular-nums">
-                        {u.aomYoungHours ?? 0}
-                      </td>
-                      <td className="p-3 text-center tabular-nums">
-                        {u.otherHours ?? 0}
-                      </td>
-                      <td className="p-3 text-center tabular-nums font-semibold text-gray-800">
-                        {u.totalHours ?? 0}
-                      </td>
-                      {/* ***** CORRECTED SCHOLARSHIP DISPLAY ***** */}
-                      <td className="p-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              u.scholarshipStatusDisplay === "ยังไม่สมัคร"
-                                ? "bg-gray-100 text-gray-600"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {u.scholarshipStatusDisplay || "ยังไม่สมัคร"}
+                    <React.Fragment key={u.userId}>
+                      <tr className="hover:bg-gray-50 cursor-pointer transition-colors duration-200 border-b border-gray-200" onClick={() => toggleRowExpansion(u.userId)}>
+                        <td className="p-3 align-top">
+                          <div className="font-medium text-gray-900 text-sm">
+                            {u.name}
+                          </div>
+                          <div className="text-xs text-gray-600 font-medium bg-gray-100 inline-block px-2 py-0.5 rounded mt-1">
+                            {u.username}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {u.faculty || "-"}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {u.major || "-"}
+                          </div>
+                          {u.student_status && u.student_status !== "ปกติ" && u.student_status !== "normal" && (
+                            <div className="text-xs text-orange-600 font-medium">
+                              {u.student_status === "withdrawn" ? "ลาออก" :
+                               u.student_status === "dropped" ? "ตกออก" :
+                               u.student_status === "graduated" ? "สำเร็จการศึกษา" :
+                               u.student_status === "on_leave" ? "ลาพัก" :
+                               u.student_status === "expelled" ? "คัดชื่อออก" :
+                               u.student_status === "transferred" ? "โอนย้ายหลักสูตร" :
+                               u.student_status === "deceased" ? "เสียชีวิต" :
+                               u.student_status}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="text-gray-900 text-sm font-medium">
+                            {u.modLinkHours ?? 0}
                           </span>
-                          <button
-                            className="btn btn-xs btn-outline btn-square"
-                            title="แก้ไขสถานะทุน"
-                            onClick={() => {
-                              setEditingUserId(u.username);
-                              setSelectedScholarship(
-                                u.scholarshipStatusDisplay || "ยังไม่สมัคร"
-                              );
-                              setEditingUserInfo(u);
-                              setShowModal(true);
-                            }}
-                          >
-                            <Edit size={14} />
-                          </button>
-                        </div>
-                      </td>
-                      {/* ***** END CORRECTION ***** */}
-                    </tr>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="text-gray-900 text-sm font-medium">
+                            {u.systemHours ?? 0}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="text-orange-600 text-base font-semibold">
+                            {u.totalHours ?? 0}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <span
+                              className={`px-2 py-1 text-xs font-medium rounded border ${
+                                u.scholarshipStatusDisplay === "ยังไม่สมัคร"
+                                  ? "bg-gray-50 text-gray-600 border-gray-200"
+                                  : "bg-orange-50 text-orange-700 border-orange-200"
+                              }`}
+                            >
+                              {u.scholarshipStatusDisplay || "ยังไม่สมัคร"}
+                            </span>
+                            <button
+                              className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-100 hover:bg-orange-100 text-gray-600 hover:text-orange-600 transition-colors duration-200"
+                              title="แก้ไขสถานะทุน"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingUserId(u.username);
+                                setSelectedScholarship(
+                                  u.scholarshipStatusDisplay || "ยังไม่สมัคร"
+                                );
+                                setEditingUserInfo(u);
+                                setShowModal(true);
+                              }}
+                            >
+                              <Edit size={12} />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <div className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 transition-colors duration-200">
+                            {expandedRows[u.userId] ? (
+                              <ChevronUp size={14} className="text-gray-600" />
+                            ) : (
+                              <ChevronDown size={14} className="text-gray-500" />
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedRows[u.userId] && (
+                        <tr className="bg-gray-50 border-t border-gray-300">
+                          <td colSpan={6} className="p-4">
+                            <div className="text-sm">
+                              <h4 className="font-medium text-gray-800 mb-3">
+                                รายละเอียดชั่วโมงในระบบ
+                              </h4>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">e-Learning</div>
+                                  <div className="text-base font-medium text-gray-900">{u.eLearningHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">บริจาคเลือด</div>
+                                  <div className="text-base font-medium text-gray-900">{u.bloodDonateHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">กอช.</div>
+                                  <div className="text-base font-medium text-gray-900">{u.nsfHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">AOM YOUNG</div>
+                                  <div className="text-base font-medium text-gray-900">{u.aomYoungHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">ต้นไม้ล้านต้น</div>
+                                  <div className="text-base font-medium text-gray-900">{u.treeHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">ศาสนสถาน</div>
+                                  <div className="text-base font-medium text-gray-900">{u.religiousHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                  <div className="text-xs text-gray-600 mb-1">พัฒนาชุมชน</div>
+                                  <div className="text-base font-medium text-gray-900">{u.socialHours ?? 0}</div>
+                                  <div className="text-xs text-gray-500">ชั่วโมง</div>
+                                </div>
+                                <div className="text-center p-2 bg-orange-100 rounded border border-orange-200">
+                                  <div className="text-xs text-orange-700 mb-1">รวมในระบบ</div>
+                                  <div className="text-base font-semibold text-orange-800">{u.systemHours ?? 0}</div>
+                                  <div className="text-xs text-orange-600">ชั่วโมง</div>
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))
                 ) : (
                   <tr>
-                    
-                    <td colSpan={9} className="text-center p-10 text-gray-500">
-                      
-                      ไม่พบข้อมูลนักศึกษาที่ตรงกับเงื่อนไขการค้นหาและตัวกรอง
+                    <td colSpan={6} className="text-center p-16">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center mb-4">
+                          <Search className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-700 mb-2">ไม่พบข้อมูล</h3>
+                        <p className="text-gray-500">ไม่พบนักศึกษาที่ตรงกับเงื่อนไขที่เลือก</p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -497,74 +579,76 @@ function AdminUserStatsPage() {
 
           {/* --- Pagination --- */}
           {totalItems > 0 && totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 px-4 py-3 border-t border-gray-200 text-sm">
-              <div className="text-gray-600">
-                {" "}
-                หน้า {page} / {totalPages} (พบ {totalItems.toLocaleString()}{" "}
-                รายการ){" "}
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-6 py-4 bg-gray-50 border-t border-gray-200">
+              <div className="text-sm text-gray-600">
+                แสดง <span className="font-medium text-gray-900">{totalItems.toLocaleString()}</span> รายการ | หน้า <span className="font-medium text-gray-900">{page}</span> จาก <span className="font-medium">{totalPages}</span>
               </div>
-              <div className="join">
+              <div className="flex gap-2">
                 <button
-                  className="join-item btn btn-sm btn-outline disabled:opacity-50"
+                  className="px-4 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
                   disabled={page === 1 || isLoading}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
-                  {" "}
-                  <ChevronLeft size={16} /> ก่อนหน้า{" "}
+                  <ChevronLeft size={16} /> ก่อนหน้า
                 </button>
                 <button
-                  className="join-item btn btn-sm btn-outline disabled:opacity-50"
+                  className="px-4 py-2 bg-white border border-gray-300 rounded text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center gap-2"
                   disabled={page === totalPages || isLoading}
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 >
-                  {" "}
-                  ถัดไป <ChevronRight size={16} />{" "}
+                  ถัดไป <ChevronRight size={16} />
                 </button>
               </div>
             </div>
           )}
           {totalItems > 0 && totalPages <= 1 && (
-            <div className="text-center text-sm text-gray-600 px-4 py-3 border-t border-gray-200">
-              {" "}
-              พบ {totalItems.toLocaleString()} รายการ{" "}
+            <div className="text-center text-sm text-gray-600 px-6 py-4 bg-gray-50 border-t border-gray-200">
+              พบ <span className="font-medium text-gray-900">{totalItems.toLocaleString()}</span> รายการทั้งหมด
             </div>
           )}
         </div>
       )}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg w-[300px]">
-            <h2 className="font-semibold mb-3">
-              แก้ไขสถานะทุน
-              <div className="text-sm font-normal text-gray-600">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="bg-orange-500 text-white p-6">
+              <h2 className="text-xl font-semibold">
+                แก้ไขสถานะทุน
+              </h2>
+              <div className="text-orange-100 text-sm mt-2">
                 {editingUserInfo?.name} ({editingUserInfo?.username})
               </div>
-            </h2>
-
-            <select
-              className="select select-bordered w-full mb-4"
-              value={selectedScholarship}
-              onChange={(e) => setSelectedScholarship(e.target.value)}
-            >
-              <option>ยังไม่สมัคร</option>
-              <option>ลักษณะที่ 1</option>
-              <option>ลักษณะที่ 2</option>
-              <option>ลักษณะที่ 3</option>
-            </select>
-
-            <div className="flex justify-end gap-2">
-              <button
-                className="btn btn-sm"
-                onClick={() => setShowModal(false)}
+            </div>
+            
+            <div className="p-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                เลือกประเภททุน:
+              </label>
+              <select
+                className="w-full px-4 py-3 border border-gray-300 rounded focus:border-orange-500 focus:ring-1 focus:ring-orange-200 transition-colors duration-200 text-sm"
+                value={selectedScholarship}
+                onChange={(e) => setSelectedScholarship(e.target.value)}
               >
-                ยกเลิก
-              </button>
-              <button
-                className="btn btn-sm btn-primary"
-                onClick={handleSaveScholarship}
-              >
-                บันทึก
-              </button>
+                <option>ยังไม่สมัคร</option>
+                <option>ลักษณะที่ 1</option>
+                <option>ลักษณะที่ 2</option>
+                <option>ลักษณะที่ 3</option>
+              </select>
+              
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded transition-colors duration-200"
+                  onClick={() => setShowModal(false)}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  className="px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded shadow-sm transition-colors duration-200"
+                  onClick={handleSaveScholarship}
+                >
+                  บันทึก
+                </button>
+              </div>
             </div>
           </div>
         </div>

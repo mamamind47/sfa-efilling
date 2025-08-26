@@ -18,6 +18,7 @@ import {
   Hourglass,
   History,
   UserPen,
+  Mail,
 } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
 
@@ -96,6 +97,12 @@ const menuItemsData = (role) =>
       path: "/app/report",
       icon: ClipboardCheck,
       text: "สถิตินักศึกษา",
+      roles: ["admin"],
+    },
+    {
+      path: "/app/send-email",
+      icon: Mail,
+      text: "ส่งอีเมล",
       roles: ["admin"],
     },
   ].filter((item) => item.roles.includes(role));

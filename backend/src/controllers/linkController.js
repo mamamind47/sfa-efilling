@@ -4,8 +4,10 @@ const xlsx = require("xlsx");
 
 const studentIdHeader = "รหัสนักศึกษา";
 const yearHeader = "ปีการศึกษา";
-const hoursHeader = "รวมจำนวนชั่วโมงที่ทำทั้งหมด";
-const expectedHeaders = [studentIdHeader, yearHeader, hoursHeader];
+const projectNameHeader = "ชื่อโครงการ";
+const hoursHeader = "จำนวนชั่วโมงที่ทำกิจกรรม";
+const activityTypeHeader = "ประเภทกิจกรรมจิตอาสา";
+const expectedHeaders = [studentIdHeader, yearHeader, projectNameHeader, hoursHeader, activityTypeHeader];
 
 exports.uploadVolunteerHours = async (req, res) => {
   if (!req.file) {
@@ -51,7 +53,9 @@ exports.uploadVolunteerHours = async (req, res) => {
     const headerIndices = {
       studentId: headers.indexOf(studentIdHeader),
       year: headers.indexOf(yearHeader),
+      projectName: headers.indexOf(projectNameHeader),
       hours: headers.indexOf(hoursHeader),
+      activityType: headers.indexOf(activityTypeHeader),
     };
 
     const dataToProcess = rawData.slice(1);
@@ -59,62 +63,72 @@ exports.uploadVolunteerHours = async (req, res) => {
       `Found ${dataToProcess.length} data rows. Starting database upsert...`
     );
 
-    let successCount = 0;
-    let errorCount = 0;
+    // Prepare data for batch insert
+    const validData = [];
     const errors = [];
+    let skippedCount = 0;
 
     for (const rowArray of dataToProcess) {
       const studentId = String(rowArray[headerIndices.studentId] || "").trim();
       const academicYear = String(rowArray[headerIndices.year] || "").trim();
+      const projectName = String(rowArray[headerIndices.projectName] || "").trim();
       const totalHoursString = String(
         rowArray[headerIndices.hours] || ""
       ).trim();
       const hours = parseInt(totalHoursString, 10);
+      const activityType = String(rowArray[headerIndices.activityType] || "").trim();
 
-      if (!studentId || !academicYear || isNaN(hours) || hours <= 0) {
+      if (!studentId || !academicYear || !projectName || isNaN(hours) || hours <= 0 || !activityType) {
         console.warn(
-          `Skipping row due to missing data or invalid/zero hours: StudentID=${studentId}, Year=${academicYear}, Hours=${totalHoursString}`
+          `Skipping row due to missing data or invalid/zero hours: StudentID=${studentId}, Year=${academicYear}, Project=${projectName}, Hours=${totalHoursString}, ActivityType=${activityType}`
         );
         errors.push(
           `Row skipped: Missing data or invalid/zero hours for ${
             studentId || "N/A"
-          } / ${academicYear || "N/A"}`
+          } / ${academicYear || "N/A"} / ${projectName || "N/A"}`
         );
-        errorCount++;
+        skippedCount++;
         continue;
       }
 
-      try {
-        await prisma.linked_volunteer.upsert({
-          where: {
-            user_id_year: { user_id: studentId, year: academicYear },
-          },
-          update: { hours: hours },
-          create: { user_id: studentId, year: academicYear, hours: hours },
-        });
-        successCount++;
-      } catch (upsertError) {
-        console.error(
-          `Error upserting row: StudentID=${studentId}, Year=${academicYear}`,
-          upsertError
-        );
-        errors.push(
-          `Row failed: ${studentId} / ${academicYear} - ${upsertError.message}`
-        );
-        errorCount++;
-      }
+      validData.push({
+        user_id: studentId,
+        year: academicYear,
+        project_name: projectName,
+        hours: hours,
+        activity_type: activityType
+      });
+    }
+
+    let successCount = 0;
+    let duplicateCount = 0;
+
+    try {
+      const result = await prisma.linked_volunteer.createMany({
+        data: validData,
+        skipDuplicates: true,
+      });
+      successCount = result.count;
+      duplicateCount = validData.length - result.count;
+      
+      console.log(`Batch insert completed. Created: ${successCount}, Duplicates skipped: ${duplicateCount}`);
+    } catch (createError) {
+      console.error("Error in batch insert:", createError);
+      errors.push(`Batch insert failed: ${createError.message}`);
+      skippedCount += validData.length;
     }
 
     console.log(
-      `Database upsert finished. Success: ${successCount}, Failed: ${errorCount}`
+      `Database insert finished. Success: ${successCount}, Duplicates: ${duplicateCount}, Invalid: ${skippedCount}`
     );
     res.json({
-      message: `File processed. ${successCount} records upserted, ${errorCount} records failed/skipped.`,
-      totalRowsInFile: dataToProcess.length + 1,
-      validRowsProcessed: successCount + errorCount,
+      message: `File processed. ${successCount} records created, ${duplicateCount} duplicates skipped, ${skippedCount} records invalid/skipped.`,
+      totalRowsInFile: dataToProcess.length,
+      validRowsProcessed: validData.length,
       successCount,
-      errorCount,
-      errors: errorCount > 0 ? errors : undefined,
+      duplicateCount,
+      skippedCount,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     console.error("❌ Error processing uploaded file:", error);

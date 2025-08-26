@@ -1,7 +1,8 @@
 // src/pages/app/ManageAcademicYearPage.jsx
 import React, { useState, useEffect, useCallback } from "react";
-import apiClient from "../../api/axiosConfig"; // ใช้ apiClient ที่ตั้งค่า Interceptor แล้ว
-import { CalendarPlus, Pencil, X } from "lucide-react";
+import apiClient from "../../api/axiosConfig";
+import { Calendar, CalendarPlus, Pencil, X, Clock, CheckCircle, XCircle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL; // ยังคงใช้ Base URL สำหรับบางกรณีได้
 
@@ -50,10 +51,14 @@ function ManageAcademicYearPage() {
 
   const createAcademicYear = async (event) => {
     event.preventDefault();
-    if (!yearName || !startDate || !endDate)
-      return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-    if (!/^\d{4}$/.test(yearName))
-      return alert("ชื่อปีการศึกษาต้องเป็นตัวเลข 4 หลักเท่านั้น");
+    if (!yearName || !startDate || !endDate) {
+      toast.error("กรุณากรอกข้อมูลให้ครบถ้วน");
+      return;
+    }
+    if (!/^\d{4}$/.test(yearName)) {
+      toast.error("ชื่อปีการศึกษาต้องเป็นตัวเลข 4 หลักเท่านั้น");
+      return;
+    }
 
     setIsCreating(true); // <-- เรียกใช้ setIsCreating
     setError(null); // <-- เรียกใช้ setError
@@ -69,7 +74,8 @@ function ManageAcademicYearPage() {
         await fetchAcademicYears();
         setYearName("");
         setStartDate("");
-        setEndDate(""); // <-- เรียกใช้ State Setters
+        setEndDate("");
+        toast.success("เพิ่มปีการศึกษาสำเร็จ");
       } else {
         throw new Error(response.data?.error || "สร้างปีการศึกษาไม่สำเร็จ");
       }
@@ -89,10 +95,14 @@ function ManageAcademicYearPage() {
 
   const updateAcademicYear = async (event) => {
     event.preventDefault();
-    if (!selectedYear || !editYearName || !editStartDate || !editEndDate)
-      return alert("ข้อมูลในฟอร์มแก้ไขไม่ครบถ้วน");
-    if (!/^\d{4}$/.test(editYearName))
-      return alert("ชื่อปีการศึกษาต้องเป็นตัวเลข 4 หลักเท่านั้น");
+    if (!selectedYear || !editYearName || !editStartDate || !editEndDate) {
+      toast.error("ข้อมูลในฟอร์มแก้ไขไม่ครบถ้วน");
+      return;
+    }
+    if (!/^\d{4}$/.test(editYearName)) {
+      toast.error("ชื่อปีการศึกษาต้องเป็นตัวเลข 4 หลักเท่านั้น");
+      return;
+    }
 
     setIsUpdating(true); // <-- เรียกใช้ setIsUpdating
     setError(null); // <-- เรียกใช้ setError
@@ -109,6 +119,7 @@ function ManageAcademicYearPage() {
       );
       if (response.status === 200) {
         await fetchAcademicYears();
+        toast.success("แก้ไขปีการศึกษาสำเร็จ");
         closeModal();
       } else {
         throw new Error(response.data?.error || "อัปเดตปีการศึกษาไม่สำเร็จ");
@@ -179,114 +190,159 @@ function ManageAcademicYearPage() {
 
   // --- Render JSX (เพิ่มกลับเข้ามา) ---
   return (
-    <div className="p-4 md:p-6">
-      <h1 className="text-2xl font-bold mb-4 flex items-center space-x-2 text-base-content">
-        <CalendarPlus className="text-orange-500" size="24" />
-        <span>จัดการปีการศึกษา</span>
-      </h1>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full mb-3 shadow-lg">
+            <Calendar className="text-white" size={24} />
+          </div>
+          <h1 className="text-xl font-bold text-gray-800 mb-2">
+            จัดการปีการศึกษา
+          </h1>
+          <p className="text-gray-600 text-sm max-w-xl mx-auto">
+            เพิ่ม แก้ไข และควบคุมสถานะปีการศึกษาสำหรับระบบยื่นใบรับรองจิตอาสา
+          </p>
+        </div>
 
-      <div className="card bg-base-100 shadow-md mb-6">
-        <div className="card-body p-4 md:p-6">
-          <h2 className="card-title text-lg mb-2">เพิ่มปีการศึกษา</h2>
-          <form
-            onSubmit={createAcademicYear}
-            className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end"
-          >
-            <div className="form-control w-full">
-              <label className="label" htmlFor="year_name">
-                <span className="label-text">ชื่อปีการศึกษา (เลข 4 หลัก)</span>
-              </label>
-              <input
-                id="year_name"
-                type="text"
-                placeholder="เช่น 2567"
-                value={yearName}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, "");
-                  if (value.length <= 4) setYearName(value);
-                }}
-                className="input input-bordered w-full focus:outline-none focus:ring-0 focus:ring-offset-0"
-                required
-                pattern="\d{4}"
-                inputMode="numeric"
-              />
+        {/* Add Academic Year Form */}
+        <div className="bg-white rounded-xl shadow-md border border-orange-100 p-6">
+          <div className="flex items-center space-x-2 mb-6">
+            <CalendarPlus className="text-orange-500" size={20} />
+            <h2 className="text-base font-medium text-gray-800">เพิ่มปีการศึกษาใหม่</h2>
+          </div>
+          
+          <form onSubmit={createAcademicYear} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ชื่อปีการศึกษา
+                </label>
+                <input
+                  id="year_name"
+                  type="text"
+                  placeholder="เช่น 2567"
+                  value={yearName}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, "");
+                    if (value.length <= 4) setYearName(value);
+                  }}
+                  className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm"
+                  required
+                  pattern="\d{4}"
+                  inputMode="numeric"
+                />
+                <p className="mt-1 text-xs text-gray-500">ตัวเลข 4 หลัก</p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  วันที่เริ่มต้น
+                </label>
+                <input
+                  id="start_date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  วันที่สิ้นสุด
+                </label>
+                <input
+                  id="end_date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm"
+                  required
+                />
+              </div>
             </div>
-            <div className="form-control w-full">
-              <label className="label" htmlFor="start_date">
-                <span className="label-text">วันเริ่มต้น</span>
-              </label>
-              <input
-                id="start_date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="input input-bordered w-full focus:outline-none focus:ring-0 focus:ring-offset-0"
-                required
-              />
+            
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="btn btn-sm bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none shadow-md hover:shadow-lg transition-all duration-300 px-6"
+                disabled={isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <span className="loading loading-spinner loading-xs"></span>
+                    กำลังสร้าง...
+                  </>
+                ) : (
+                  <>
+                    <CalendarPlus size={16} />
+                    เพิ่มปีการศึกษา
+                  </>
+                )}
+              </button>
             </div>
-            <div className="form-control w-full">
-              <label className="label" htmlFor="end_date">
-                <span className="label-text">วันสิ้นสุด</span>
-              </label>
-              <input
-                id="end_date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="input input-bordered w-full focus:outline-none focus:ring-0 focus:ring-offset-0"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="btn bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600 text-white md:col-span-3 w-full md:w-auto md:justify-self-end"
-              disabled={isCreating}
-            >
-              {isCreating ? (
-                <>
-                  <span className="loading loading-spinner loading-xs"></span>
-                  กำลังสร้าง...
-                </>
-              ) : (
-                "เพิ่มปีการศึกษา"
-              )}
-            </button>
           </form>
         </div>
-      </div>
 
-      {/* ----- แสดงข้อผิดพลาด ----- */}
-      {error && (
-        <div role="alert" className="alert alert-error mb-4">
-          <X size={18} />
-          <span>{error}</span>
-        </div>
-      )}
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2">
+            <X size={18} />
+            <span>{error}</span>
+          </div>
+        )}
 
-      {/* ----- ตารางแสดงปีการศึกษา ----- */}
-      {isLoading ? (
-        <div className="text-center p-10">
-          <span className="loading loading-lg loading-spinner text-primary"></span>
-        </div>
-      ) : academicYears.length === 0 ? (
-        <div className="text-center p-10 text-base-content/60">
-          ยังไม่มีข้อมูลปีการศึกษา
-        </div>
-      ) : (
-        <div className="card bg-base-100 shadow-md">
-          <div className="card-body p-0">
+        {/* Academic Years Table */}
+        <div className="bg-white rounded-xl shadow-md border border-orange-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
+            <h2 className="text-lg font-semibold text-white flex items-center">
+              <Calendar className="mr-2" size={20} />
+              รายการปีการศึกษา
+            </h2>
+          </div>
+
+          {isLoading ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="flex flex-col items-center space-y-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+                <p className="text-gray-500 text-sm">กำลังโหลดข้อมูล...</p>
+              </div>
+            </div>
+          ) : academicYears.length === 0 ? (
+            <div className="flex items-center justify-center p-12">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="text-gray-400" size={24} />
+                </div>
+                <p className="text-gray-500 text-sm">ยังไม่มีข้อมูลปีการศึกษา</p>
+                <p className="text-gray-400 text-xs mt-1">เพิ่มปีการศึกษาแรกเพื่อเริ่มต้นใช้งาน</p>
+              </div>
+            </div>
+          ) : (
             <div className="overflow-x-auto">
-              <table className="table table-zebra w-full">
-                <thead className="bg-base-200">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="p-3">ปีการศึกษา</th>
-                    <th className="p-3">วันเริ่มต้น</th>
-                    <th className="p-3">วันสิ้นสุด</th>
-                    <th className="p-3 text-center">สถานะ</th>
-                    <th className="p-3 text-center">จัดการ</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      ปีการศึกษา
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      วันที่เริ่มต้น
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      วันที่สิ้นสุด
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      สถานะ
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      จัดการ
+                    </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="bg-white divide-y divide-gray-200">
                   {academicYears.map((year) => {
                     const statusInfo = getStatusDisplay(
                       year.status,
@@ -294,29 +350,52 @@ function ManageAcademicYearPage() {
                       year.end_date
                     );
                     return (
-                      <tr key={year.academic_year_id} className="hover">
-                        <td className="p-3">{year.year_name}</td>
-                        <td className="p-3">
-                          {new Date(year.start_date).toLocaleDateString(
-                            "en-GB"
-                          )}
+                      <tr key={year.academic_year_id} className="hover:bg-gray-50 transition-colors duration-200">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                              <Calendar className="text-orange-600" size={16} />
+                            </div>
+                            <div className="ml-3">
+                              <div className="text-sm font-medium text-gray-900">
+                                {year.year_name}
+                              </div>
+                            </div>
+                          </div>
                         </td>
-                        <td className="p-3">
-                          {new Date(year.end_date).toLocaleDateString("en-GB")}
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(year.start_date).toLocaleDateString("th-TH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric"
+                          })}
                         </td>
-                        <td className="p-3 text-center">
-                          {" "}
-                          <span className={statusInfo.className}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(year.end_date).toLocaleDateString("th-TH", {
+                            year: "numeric", 
+                            month: "short",
+                            day: "numeric"
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                            year.status === 'OPEN' ? 'bg-green-100 text-green-800' :
+                            year.status === 'CLOSED' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {year.status === 'OPEN' && <CheckCircle size={12} className="mr-1" />}
+                            {year.status === 'CLOSED' && <XCircle size={12} className="mr-1" />}
+                            {!year.status && <Clock size={12} className="mr-1" />}
                             {statusInfo.text}
-                          </span>{" "}
+                          </span>
                         </td>
-                        <td className="p-3 text-center">
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
                           <button
                             onClick={() => openModal(year)}
-                            className="btn btn-ghost btn-sm text-orange-600 hover:bg-orange-100 px-2"
+                            className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-orange-600 bg-orange-100 hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors duration-200"
                           >
-                            {" "}
-                            <Pencil size="16" />{" "}
+                            <Pencil size={14} className="mr-1" />
+                            แก้ไข
                           </button>
                         </td>
                       </tr>
@@ -325,110 +404,131 @@ function ManageAcademicYearPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          )}
         </div>
-      )}
 
-      {/* ----- Modal แก้ไข ----- */}
-      {isModalOpen && selectedYear && (
-        <dialog
-          id="edit_modal"
-          className={`modal ${isModalOpen ? "modal-open" : ""}`}
-        >
-          <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">
-              แก้ไขปีการศึกษา {editYearName}
-            </h3>
-            <form onSubmit={updateAcademicYear} className="space-y-3">
-              <div className="form-control">
-                <label className="label" htmlFor="editYearNameModal">
-                  <span className="label-text">ชื่อปีการศึกษา</span>
-                </label>
-                <input
-                  id="editYearNameModal"
-                  type="text"
-                  value={editYearName}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    if (value.length <= 4) setEditYearName(value);
-                  }}
-                  className="input input-bordered"
-                  required
-                  pattern="\d{4}"
-                  inputMode="numeric"
-                />
+        {/* Edit Modal */}
+        {isModalOpen && selectedYear && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-white flex items-center">
+                    <Pencil className="mr-2" size={20} />
+                    แก้ไขปีการศึกษา {editYearName}
+                  </h3>
+                  <button 
+                    onClick={closeModal} 
+                    className="text-white/80 hover:text-white transition-colors"
+                    disabled={isUpdating}
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
-              <div className="form-control">
-                <label className="label" htmlFor="editStartDateModal">
-                  <span className="label-text">วันเริ่มต้น</span>
-                </label>
-                <input
-                  id="editStartDateModal"
-                  type="date"
-                  value={editStartDate}
-                  onChange={(e) => setEditStartDate(e.target.value)}
-                  className="input input-bordered"
-                  required
-                />
+              
+              <div className="p-6">
+                <form onSubmit={updateAcademicYear} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ชื่อปีการศึกษา
+                    </label>
+                    <input
+                      id="editYearNameModal"
+                      type="text"
+                      value={editYearName}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, "");
+                        if (value.length <= 4) setEditYearName(value);
+                      }}
+                      className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm"
+                      required
+                      pattern="\d{4}"
+                      inputMode="numeric"
+                      disabled={isUpdating}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      วันที่เริ่มต้น
+                    </label>
+                    <input
+                      id="editStartDateModal"
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => setEditStartDate(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm"
+                      required
+                      disabled={isUpdating}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      วันที่สิ้นสุด
+                    </label>
+                    <input
+                      id="editEndDateModal"
+                      type="date"
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-300 text-sm"
+                      required
+                      disabled={isUpdating}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      สถานะ
+                    </label>
+                    <select
+                      id="editStatusModal"
+                      value={editStatus}
+                      onChange={(e) => setEditStatus(e.target.value)}
+                      className="w-full px-3 py-2.5 border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 appearance-none bg-white transition-all duration-300 text-sm"
+                      disabled={isUpdating}
+                    >
+                      <option value="">ตามเวลาที่ตั้ง</option>
+                      <option value="OPEN">เปิด</option>
+                      <option value="CLOSED">ปิด</option>
+                    </select>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={closeModal}
+                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm"
+                      disabled={isUpdating}
+                    >
+                      ยกเลิก
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-sm font-medium whitespace-nowrap flex items-center justify-center"
+                      disabled={isUpdating}
+                    >
+                      {isUpdating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          กำลังบันทึก...
+                        </>
+                      ) : (
+                        <>
+                          <Pencil size={14} className="mr-1" />
+                          บันทึกการแก้ไข
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
-              <div className="form-control">
-                <label className="label" htmlFor="editEndDateModal">
-                  <span className="label-text">วันสิ้นสุด</span>
-                </label>
-                <input
-                  id="editEndDateModal"
-                  type="date"
-                  value={editEndDate}
-                  onChange={(e) => setEditEndDate(e.target.value)}
-                  className="input input-bordered"
-                  required
-                />
-              </div>
-              <div className="form-control">
-                <label className="label" htmlFor="editStatusModal">
-                  <span className="label-text">สถานะ</span>
-                </label>
-                <select
-                  id="editStatusModal"
-                  value={editStatus}
-                  onChange={(e) => setEditStatus(e.target.value)}
-                  className="select select-bordered w-full"
-                >
-                  <option value="">ตามเวลาที่ตั้ง</option>{" "}
-                  <option value="OPEN">เปิด</option>{" "}
-                  <option value="CLOSED">ปิด</option>
-                </select>
-              </div>
-              <div className="modal-action mt-6">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={closeModal}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="btn bg-orange-500 hover:bg-orange-600 border-orange-500 hover:border-orange-600 text-white"
-                  disabled={isUpdating}
-                >
-                  {isUpdating ? (
-                    <span className="loading loading-spinner loading-xs"></span>
-                  ) : (
-                    "บันทึก"
-                  )}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-          <form method="dialog" className="modal-backdrop">
-            {" "}
-            <button type="button" onClick={closeModal}>
-              close
-            </button>{" "}
-          </form>
-        </dialog>
-      )}
+        )}
+      </div>
     </div>
   );
 }

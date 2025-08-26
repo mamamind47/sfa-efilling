@@ -7,6 +7,7 @@ const jsQR = require("jsqr");
 const fs = require("fs");
 const { parse } = require("date-fns");
 const thLocale = require("date-fns/locale/th");
+const emailService = require("../services/emailService");
 // NOTE: pdf-lib + pdfjs-dist + canvas are used for PDF processing instead of pdf-poppler
 const { PDFDocument } = require("pdf-lib");
 const { getDocument } = require("pdfjs-dist/legacy/build/pdf.js");
@@ -16,6 +17,106 @@ const { createCanvas } = require("canvas");
 const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const workerPath = require.resolve("pdfjs-dist/build/pdf.worker.js");
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerPath;
+
+// Activity type mapping
+const ACTIVITY_TYPE_MAPPING = {
+  "BloodDonate": "บริจาคโลหิต",
+  "NSF": "ออมเงินกองทุนการออมแห่งชาติ", 
+  "AOM YOUNG": "โครงการ AOM YOUNG",
+  "ต้นไม้ล้านต้น ล้านความดี": "ต้นไม้ล้านต้น ล้านความดี",
+  "religious": "กิจรรมทำนุบำรุงศาสนสถาน",
+  "social-development": "กิจรรมพัฒนาชุมชนและโรงเรียน",
+  "Certificate": "e-Learning"
+};
+
+// Helper function to send email notifications
+async function sendSubmissionEmail(submission, status, rejectionReason = null, adminId = null, originalHours = null) {
+  try {
+    // Get user and submission details
+    const submissionDetails = await prisma.submissions.findUnique({
+      where: { submission_id: submission.submission_id },
+      include: {
+        users: true,
+        academic_years: true,
+        certificate_type: true
+      }
+    });
+
+    if (!submissionDetails || !submissionDetails.users.email) {
+      console.log('No email found for user or submission not found');
+      return;
+    }
+
+    const user = submissionDetails.users;
+    const activityType = submissionDetails.type === 'Certificate' && submissionDetails.certificate_type
+      ? submissionDetails.certificate_type.certificate_name
+      : ACTIVITY_TYPE_MAPPING[submissionDetails.type] || submissionDetails.type;
+
+    // Get admin name if adminId is provided
+    let adminName = 'ระบบอัตโนมัติ';
+    if (adminId) {
+      const admin = await prisma.users.findUnique({
+        where: { user_id: adminId },
+        select: { name: true, username: true }
+      });
+      adminName = admin ? (admin.name || admin.username) : 'เจ้าหน้าที่';
+    }
+
+    // For rejected emails, use original hours requested, not the approved hours
+    const displayHours = (status === 'rejected' && originalHours !== null) 
+      ? originalHours 
+      : submissionDetails.hours || 0;
+
+    const variables = {
+      userName: user.name || user.username,
+      submissionId: submissionDetails.submission_id.toString(),
+      activityType: activityType,
+      activityName: activityType,
+      hours: displayHours,
+      systemUrl: process.env.CLIENT_URL || 'http://localhost:5173'
+    };
+
+    if (status === 'approved') {
+      variables.approvedDate = new Date().toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',  
+        day: 'numeric'
+      });
+      variables.approvedBy = adminName;
+
+      await emailService.sendEmail({
+        to: user.email,
+        subject: 'แจ้งการอนุมัติคำขอกิจกรรมจิตอาสา',
+        template: 'approved',
+        variables: variables
+      });
+
+      console.log(`Approval email sent to ${user.email} for submission ${submission.submission_id}`);
+
+    } else if (status === 'rejected') {
+      variables.rejectedDate = new Date().toLocaleDateString('th-TH', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      variables.rejectedBy = adminName;
+      variables.rejectionReason = rejectionReason || '';
+
+      await emailService.sendEmail({
+        to: user.email,
+        subject: 'แจ้งผลการพิจารณาคำขอกิจกรรมจิตอาสา',
+        template: 'rejected',
+        variables: variables
+      });
+
+      console.log(`Rejection email sent to ${user.email} for submission ${submission.submission_id}`);
+    }
+
+  } catch (error) {
+    console.error('Error sending submission email:', error.message);
+    // Don't throw error to prevent disrupting the main flow
+  }
+}
 
 // ยื่น Submission
 exports.submitSubmission = async (req, res) => {
@@ -280,7 +381,7 @@ exports.submitSubmission = async (req, res) => {
 
         if (rejectionReasons.length === 0) {
           // Auto approve
-          await prisma.submissions.update({
+          const updatedSubmission = await prisma.submissions.update({
             where: { submission_id: submission.submission_id },
             data: {
               status: "approved",
@@ -296,11 +397,14 @@ exports.submitSubmission = async (req, res) => {
             },
           });
 
+          // Send approval email
+          await sendSubmissionEmail(updatedSubmission, 'approved', null, null);
+
           autoApproved = true;
         } else {
           // Auto reject with reasons
           const rejectionReasonText = rejectionReasons.join(" ");
-          await prisma.submissions.update({
+          const updatedSubmission = await prisma.submissions.update({
             where: { submission_id: submission.submission_id },
             data: {
               status: "rejected",
@@ -316,6 +420,9 @@ exports.submitSubmission = async (req, res) => {
               changed_by: null,
             },
           });
+
+          // Send rejection email with original hours
+          await sendSubmissionEmail(updatedSubmission, 'rejected', rejectionReasonText, null, submission.hours);
 
           autoApproved = true; // Still mark as handled
         }
@@ -518,17 +625,7 @@ exports.getPendingSubmissions = async (req, res) => {
         where = {
           status: "submitted",
           NOT: {
-            type: {
-              in: [
-                "Certificate",
-                "BloodDonate",
-                "NSF",
-                "AOM YOUNG",
-                "ต้นไม้ล้านต้น ล้านความดี",
-                "religious",
-                "social-development"
-              ],
-            },
+            type: "Certificate",
           },
           ...(q && { OR: orConditions }),
         };
@@ -622,6 +719,7 @@ exports.reviewSubmission = async (req, res) => {
     if (!submission)
       return res.status(404).json({ error: "Submission not found" });
 
+    const originalHours = submission.hours; // เก็บชั่วโมงต้นฉบับไว้สำหรับเมล
     let finalHours = submission.hours; // กำหนดค่าเริ่มต้นเป็นชั่วโมงเดิมของ submission
 
     if (submission.type === "Certificate") {
@@ -679,6 +777,9 @@ exports.reviewSubmission = async (req, res) => {
       },
     });
 
+    // Send email notification with original hours for rejected emails
+    await sendSubmissionEmail(updated, status, rejection_reason, admin_id, originalHours);
+
     res.json({ message: `Submission ${status} successfully`, data: updated });
   } catch (error) {
     console.error("Failed to review submission:", error); // แสดง log error จริง ๆ ด้วยจะดีมาก
@@ -702,6 +803,7 @@ exports.batchReviewSubmissions = async (req, res) => {
 
       if (!submission || submission.type !== "Certificate") continue;
 
+      const originalHours = submission.hours; // เก็บชั่วโมงต้นฉบับ
       let finalHours = submission.hours;
       const cert = await prisma.certificate_types.findFirst({
         where: { certificate_type_id: submission.certificate_type_id },
@@ -725,6 +827,8 @@ exports.batchReviewSubmissions = async (req, res) => {
           changed_by: admin_id,
         },
       });
+      // Send email notification for each submission with original hours
+      await sendSubmissionEmail(submission, status, rejection_reason, admin_id, originalHours);
     }
 
     res.json({ message: `Batch ${status} สำเร็จแล้ว` });
@@ -805,6 +909,8 @@ exports.getApprovalHistory = async (req, res) => {
     pageSize = 50,
     searchQuery = "",
     sortOption = "latest",
+    status = "all", // all, approved, rejected
+    academicYear = "all", // all, or specific academic year ID
   } = req.query;
 
   const numericPage = parseInt(page);
@@ -812,19 +918,26 @@ exports.getApprovalHistory = async (req, res) => {
   const q = searchQuery.trim();
 
   let where;
-  if (category === "Others") {
+  if (category === "ALL") {
+    // Show all submission types including Certificate
     const orConditions = [
       { users: { name: { contains: q } } },
       { users: { username: { contains: q } } },
       { users: { major: { contains: q } } },
-      {type: { contains: q }}
+      { type: { contains: q } }
     ];
 
+    // Add certificate-specific search conditions
+    if (q) {
+      orConditions.push(
+        { certificate_type: { certificate_name: { contains: q } } },
+        { certificate_type: { category: { contains: q } } }
+      );
+    }
+
     where = {
-      NOT: {
-        type: { in: ["Certificate", "BloodDonate", "NSF", "AOM YOUNG"] },
-      },
-      status: { in: ["approved", "rejected"] },
+      status: status === "all" ? { in: ["approved", "rejected"] } : status,
+      ...(academicYear && academicYear !== "all" && { academic_year_id: academicYear }),
       ...(q && { OR: orConditions }),
     };
   } else {
@@ -843,7 +956,8 @@ exports.getApprovalHistory = async (req, res) => {
 
     where = {
       type: category,
-      status: { in: ["approved", "rejected"] },
+      status: status === "all" ? { in: ["approved", "rejected"] } : status,
+      ...(academicYear && academicYear !== "all" && { academic_year_id: academicYear }),
       ...(q && { OR: orConditions }),
     };
   }
@@ -891,3 +1005,152 @@ exports.getApprovalHistory = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch approval history" });
   }
 };
+
+exports.exportApprovalHistoryExcel = async (req, res) => {
+  const {
+    category,
+    searchQuery = "",
+    sortOption = "latest",
+    status = "all",
+    academicYear,
+  } = req.query;
+
+  const q = searchQuery.trim();
+  const ExcelJS = require('exceljs');
+
+  let where;
+  if (category === "ALL") {
+    const orConditions = [
+      { users: { name: { contains: q } } },
+      { users: { username: { contains: q } } },
+      { users: { major: { contains: q } } },
+      { type: { contains: q } }
+    ];
+
+    if (q) {
+      orConditions.push(
+        { certificate_type: { certificate_name: { contains: q } } },
+        { certificate_type: { category: { contains: q } } }
+      );
+    }
+
+    where = {
+      status: status === "all" ? { in: ["approved", "rejected"] } : status,
+      ...(academicYear && academicYear !== "all" && { academic_year_id: academicYear }),
+      ...(q && { OR: orConditions }),
+    };
+  } else {
+    const orConditions = [
+      { users: { name: { contains: q } } },
+      { users: { username: { contains: q } } },
+      { users: { major: { contains: q } } },
+    ];
+
+    if (category === "Certificate") {
+      orConditions.push(
+        { certificate_type: { certificate_name: { contains: q } } },
+        { certificate_type: { category: { contains: q } } }
+      );
+    }
+
+    where = {
+      type: category,
+      status: status === "all" ? { in: ["approved", "rejected"] } : status,
+      ...(academicYear && academicYear !== "all" && { academic_year_id: academicYear }),
+      ...(q && { OR: orConditions }),
+    };
+  }
+
+  const finalOrderBy = {
+    updated_at: sortOption === "latest" ? "desc" : "asc",
+  };
+
+  try {
+    const submissions = await prisma.submissions.findMany({
+      where,
+      include: {
+        users: true,
+        academic_years: true,
+        certificate_type: true,
+        status_logs: {
+          orderBy: { changed_at: "desc" },
+          take: 1,
+          include: {
+            changed_by_user: true
+          }
+        },
+      },
+      orderBy: finalOrderBy,
+    });
+
+    // Create Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('ประวัติการอนุมัติ');
+
+    // Define columns
+    const columns = [
+      { header: 'ชื่อ', key: 'name', width: 25 },
+      { header: 'รหัสนักศึกษา', key: 'username', width: 15 },
+      { header: 'คณะ', key: 'faculty', width: 20 },
+      { header: 'สาขา', key: 'major', width: 25 },
+      { header: 'ประเภท', key: 'type', width: 20 },
+      { header: 'หัวข้อ', key: 'topic', width: 30 },
+      { header: 'ชั่วโมง', key: 'hours', width: 10 },
+      { header: 'ปีการศึกษา', key: 'academic_year', width: 15 },
+      { header: 'วันที่ยื่น', key: 'created_at', width: 15 },
+      { header: 'วันที่พิจารณา', key: 'reviewed_at', width: 15 },
+      { header: 'สถานะ', key: 'status', width: 12 },
+      { header: 'ผู้พิจารณา', key: 'reviewer', width: 20 },
+      { header: 'เหตุผล', key: 'reason', width: 40 }
+    ];
+
+    worksheet.columns = columns;
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF3B82F6' }
+    };
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+
+    // Add data rows
+    submissions.forEach((s) => {
+      worksheet.addRow({
+        name: s.users?.name || '-',
+        username: s.users?.username || '-',
+        faculty: s.users?.faculty || '-',
+        major: s.users?.major || '-',
+        type: s.type === "Certificate" ? s.certificate_type?.category || "-" : s.type,
+        topic: s.certificate_type?.certificate_name || s.topic || '-',
+        hours: s.approved_hours || s.hours || s.requested_hours || '-',
+        academic_year: s.academic_years?.year_name || '-',
+        created_at: s.created_at ? new Date(s.created_at).toLocaleDateString("th-TH") : '-',
+        reviewed_at: s.status_logs?.[0]?.changed_at ? new Date(s.status_logs[0].changed_at).toLocaleDateString("th-TH") : '-',
+        status: s.status === 'approved' ? 'อนุมัติแล้ว' : 'ปฏิเสธแล้ว',
+        reviewer: s.status_logs?.[0]?.changed_by_user?.name || 'ระบบอัตโนมัติ',
+        reason: s.status_logs?.[0]?.reason || '-'
+      });
+    });
+
+    // Auto-fit columns
+    worksheet.columns.forEach(column => {
+      column.width = Math.max(column.width, 10);
+    });
+
+    // Set response headers
+    const filename = `ประวัติการอนุมัติ_${new Date().toISOString().split('T')[0]}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+
+    // Send file
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error("❌ Error exporting approval history:", error);
+    res.status(500).json({ error: "Failed to export approval history" });
+  }
+};
+

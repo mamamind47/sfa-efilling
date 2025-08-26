@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{subject}}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Sarabun', 'Sukhumvit Set', 'Helvetica Neue', 'Arial', sans-serif;
+            line-height: 1.7;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        
+        .email-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #e65100, #ff8f00);
+            background-color: #e65100; /* fallback for email clients that don't support gradients */
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header-logo {
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 40px 35px;
+        }
+        
+        .announcement-badge {
+            background: linear-gradient(135deg, #e65100, #ff8f00);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            display: inline-block;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .content h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 3px solid #e65100;
+            padding-bottom: 15px;
+            letter-spacing: -0.3px;
+        }
+        
+        .content p {
+            margin-bottom: 20px;
+            font-size: 17px;
+            color: #495057;
+            text-align: left;
+            line-height: 1.8;
+        }
+        
+        .announcement-content {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 30px;
+            margin: 30px 0;
+            color: #495057;
+            font-size: 17px;
+            line-height: 1.8;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #e65100, #ff8f00);
+            background-color: #e65100; /* fallback for email clients */
+            color: white !important;
+            padding: 16px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 25px 0;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(230, 81, 0, 0.4);
+        }
+        
+        .footer {
+            background-color: #263238;
+            color: #f8f9fa;
+            padding: 35px;
+            text-align: center;
+        }
+        
+        .footer-content {
+            margin-bottom: 20px;
+        }
+        
+        .footer h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            font-size: 14px;
+            color: #adb5bd;
+            margin-bottom: 5px;
+        }
+        
+        .disclaimer {
+            background-color: #37474f;
+            padding: 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e9ecef;
+            border: 1px solid #546e7a;
+        }
+        
+        .disclaimer strong {
+            color: #ffffff;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .contact-info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #cfd8dc;
+        }
+        
+        .contact-info strong {
+            color: #f8f9fa;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            
+            .header, .content, .footer {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .content h2 {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="header-logo">
+                <h1>{{headerTitle}}</h1>
+            </div>
+        </div>
+        
+        <div class="content">
+            <h2>{{announcementTitle}}</h2>
+            
+            <div class="announcement-content">
+                {{message}}
+            </div>
+            
+            {{#if buttonText}}
+            <div style="text-align: center;">
+                <a href="{{buttonUrl}}" class="button">{{buttonText}}</a>
+            </div>
+            {{/if}}
+            
+            <p style="text-align: center; margin-top: 30px; font-weight: 500;">
+                ประกาศ ณ วันที่ {{publishDate}}<br>
+                <strong>กลุ่มงานช่วยเหลือทางการเงินแก่นักศึกษา มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี</strong>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <div class="footer-content">
+                <h3> ระบบยื่นเอกสารนักศึกษาทุน กยศ. มจธ. | Volunteer Student Loan e-Filling (VSF) </h3>
+                <p>มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี</p>
+                <p>King Mongkut's University of Technology Thonburi</p>
+            </div>
+            
+            <div class="disclaimer">
+                อีเมลนี้ส่งจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ<br>
+                หากมีข้อสงสัยหรือต้องการความช่วยเหลือ กรุณาติดต่อ 02-470-9982
+            </div>
+        </div>
+    </div>
+</body>
+</html>

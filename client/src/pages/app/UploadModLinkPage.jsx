@@ -1,7 +1,7 @@
 // src/pages/app/UploadModLinkPage.jsx
 import React, { useState, useCallback, useMemo } from "react";
 import apiClient from "../../api/axiosConfig";
-import { Upload, CheckCircle, Search, FileSpreadsheet, X } from "lucide-react";
+import { Upload, CheckCircle, Search, FileSpreadsheet, X, AlertCircle, Check } from "lucide-react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { useDropzone } from "react-dropzone";
@@ -15,13 +15,16 @@ function UploadModLinkPage() {
   const [error, setError] = useState(null);
   const [uploadResponse, setUploadResponse] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showResultModal, setShowResultModal] = useState(false);
 
   const expectedHeaders = [
     "รหัสนักศึกษา",
     "ปีการศึกษา",
-    "รวมจำนวนชั่วโมงที่ทำทั้งหมด",
+    "ชื่อโครงการ",
+    "จำนวนชั่วโมงที่ทำกิจกรรม",
+    "ประเภทกิจกรรมจิตอาสา",
   ];
-  const [studentIdHeader, yearHeader, hoursHeader] = expectedHeaders;
+  const [studentIdHeader, yearHeader, projectNameHeader, hoursHeader, activityTypeHeader] = expectedHeaders;
 
   const resetState = () => {
     setSelectedFile(null);
@@ -31,6 +34,7 @@ function UploadModLinkPage() {
     setError(null);
     setUploadResponse(null);
     setSearchTerm("");
+    setShowResultModal(false);
   };
 
   const parseFileForPreview = useCallback((file) => {
@@ -82,7 +86,9 @@ function UploadModLinkPage() {
         const headerIndices = {
           studentId: parsedHeaders.indexOf(studentIdHeader),
           year: parsedHeaders.indexOf(yearHeader),
+          projectName: parsedHeaders.indexOf(projectNameHeader),
           hours: parsedHeaders.indexOf(hoursHeader),
+          activityType: parsedHeaders.indexOf(activityTypeHeader),
         };
 
         const mappedData = dataRows
@@ -93,16 +99,24 @@ function UploadModLinkPage() {
             const academicYear = String(
               rowArray[headerIndices.year] || ""
             ).trim();
+            const projectName = String(
+              rowArray[headerIndices.projectName] || ""
+            ).trim();
             const totalHoursString = String(
               rowArray[headerIndices.hours] || ""
             ).trim();
             const hoursNum = parseInt(totalHoursString, 10);
+            const activityType = String(
+              rowArray[headerIndices.activityType] || ""
+            ).trim();
 
             if (
               !studentId ||
               !academicYear ||
+              !projectName ||
               isNaN(hoursNum) ||
-              hoursNum <= 0
+              hoursNum <= 0 ||
+              !activityType
             ) {
               console.warn(`Skipping row ${rowIndex + 3} due to invalid data`);
               return null;
@@ -111,7 +125,9 @@ function UploadModLinkPage() {
             return {
               [studentIdHeader]: studentId,
               [yearHeader]: academicYear,
+              [projectNameHeader]: projectName,
               [hoursHeader]: hoursNum,
+              [activityTypeHeader]: activityType,
             };
           })
           .filter((row) => row !== null);
@@ -185,8 +201,7 @@ function UploadModLinkPage() {
       });
       console.log("Upload Response:", response.data);
       setUploadResponse(response.data);
-      alert(`✅ ${response.data.message || "อัปโหลดไฟล์สำเร็จ"}`);
-      resetState();
+      setShowResultModal(true);
     } catch (err) {
       if (err.response?.status !== 401 && err.response?.status !== 403) {
         console.error("❌ Error uploading file:", err);
@@ -195,7 +210,6 @@ function UploadModLinkPage() {
           err.message ||
           "เกิดข้อผิดพลาดในการอัปโหลดไฟล์";
         setError(errMsg);
-        alert(`❌ ${errMsg}`);
       }
     } finally {
       setIsLoading(false);
@@ -209,40 +223,67 @@ function UploadModLinkPage() {
       (row) =>
         String(row[studentIdHeader]).toLowerCase().includes(term) ||
         String(row[yearHeader]).toLowerCase().includes(term) ||
-        String(row[hoursHeader]).toLowerCase().includes(term)
+        String(row[projectNameHeader]).toLowerCase().includes(term) ||
+        String(row[hoursHeader]).toLowerCase().includes(term) ||
+        String(row[activityTypeHeader]).toLowerCase().includes(term)
     );
   }, [allParsedData, searchTerm]);
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <h1 className="text-2xl font-bold flex items-center space-x-2 text-base-content">
-        <Upload className="text-orange-500" size={24} />
-        <span>อัปโหลดชั่วโมงจิตอาสา (MOD LINK)</span>
-      </h1>
-
-      <div className="card bg-base-100 shadow-md">
-        <div className="card-body items-center">
-          <h2 className="card-title self-start">
-            เลือกไฟล์ Excel (.xlsx) หรือ CSV (.csv)
-          </h2>
-          <p className="text-sm opacity-70 mb-4 self-start">
-            คอลัมน์ที่ต้องการ: "{expectedHeaders.join('", "')}"
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full mb-4 shadow-lg">
+            <Upload className="text-white" size={32} />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+            อัปโหลดชั่วโมงจิตอาสา (MOD LINK)
+          </h1>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            อัปโหลดไฟล์ Excel หรือ CSV ที่มีข้อมูลชั่วโมงจิตอาสาของนักศึกษา ระบบจะตรวจสอบและบันทึกข้อมูลโดยอัตโนมัติ
           </p>
+        </div>
 
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-10 py-16 text-center cursor-pointer w-full max-w-lg ${
-              isDragActive
-                ? "border-primary bg-primary/10"
-                : "border-base-300 hover:border-primary"
-            }`}
-          >
-            <input {...getInputProps()} id="volunteerFileInput" />
-            <div className="flex flex-col items-center space-y-2">
-              <FileSpreadsheet
-                size={48}
-                className={isDragActive ? "text-primary" : "text-primary/40"}
-              />
+        {/* Upload Section */}
+        <div className="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4">
+            <h2 className="text-xl font-semibold text-white flex items-center">
+              <FileSpreadsheet className="mr-3" size={24} />
+              เลือกไฟล์ Excel (.xlsx) หรือ CSV (.csv)
+            </h2>
+          </div>
+          <div className="p-6">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+              <h3 className="font-medium text-gray-700 mb-3">คอลัมน์ที่ต้องการ:</h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                {expectedHeaders.map((header, index) => (
+                  <div key={index} className="flex items-center">
+                    <span className="text-orange-500 font-medium mr-2">{index + 1}.</span>
+                    <span>{header}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-xl p-10 py-16 text-center cursor-pointer transition-all duration-300 ${
+                isDragActive
+                  ? "border-orange-400 bg-orange-50 scale-105 shadow-lg"
+                  : "border-orange-300 hover:border-orange-400 hover:bg-orange-50 hover:shadow-md"
+              }`}
+            >
+              <input {...getInputProps()} id="volunteerFileInput" />
+              <div className="flex flex-col items-center space-y-2">
+                <div className={`transition-all duration-300 ${
+                  isDragActive ? "scale-110" : ""
+                }`}>
+                  <FileSpreadsheet
+                    size={64}
+                    className={isDragActive ? "text-orange-500" : "text-orange-400"}
+                  />
+                </div>
               {selectedFile ? (
                 <div>
                   <p className="font-semibold text-success">
@@ -340,7 +381,13 @@ function UploadModLinkPage() {
                           {row[yearHeader]}
                         </td>
                         <td className="px-4 py-2 text-center align-middle">
+                          {row[projectNameHeader]}
+                        </td>
+                        <td className="px-4 py-2 text-center align-middle">
                           {row[hoursHeader]}
+                        </td>
+                        <td className="px-4 py-2 text-center align-middle">
+                          {row[activityTypeHeader]}
                         </td>
                       </tr>
                     ))
@@ -360,21 +407,93 @@ function UploadModLinkPage() {
 
             <div className="card-actions justify-end mt-4">
               <button
-                className="btn btn-primary"
+                className="btn bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                 onClick={handleUploadConfirm}
                 disabled={isLoading || parsedRowCount === 0}
               >
                 {isLoading ? (
-                  <span className="loading loading-spinner loading-xs"></span>
+                  <>
+                    <span className="loading loading-spinner loading-sm mr-2"></span>
+                    กำลังอัปโหลด...
+                  </>
                 ) : (
-                  <CheckCircle size={16} className="mr-1" />
+                  <>
+                    <CheckCircle size={20} className="mr-2" />
+                    ยืนยันการอัปโหลด ({parsedRowCount} รายการ)
+                  </>
                 )}
-                ยืนยันการอัปโหลด ({parsedRowCount} รายชื่อ)
               </button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Upload Result Modal */}
+      {showResultModal && uploadResponse && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4 shadow-xl">
+            <div className="text-center">
+              <div className="mb-4">
+                <Check className="mx-auto text-green-500 w-16 h-16" />
+              </div>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                ผลการอัปโหลดไฟล์
+              </h3>
+              
+              <div className="space-y-3 text-sm">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-green-700">สร้างข้อมูลใหม่:</span>
+                    <span className="font-semibold text-green-800">
+                      {uploadResponse.successCount || 0} รายการ
+                    </span>
+                  </div>
+                </div>
+                
+                {uploadResponse.duplicateCount > 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-yellow-700">ข้อมูลซ้ำ (ข้าม):</span>
+                      <span className="font-semibold text-yellow-800">
+                        {uploadResponse.duplicateCount} รายการ
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
+                {uploadResponse.skippedCount > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-red-700">ข้อมูลไม่ถูกต้อง:</span>
+                      <span className="font-semibold text-red-800">
+                        {uploadResponse.skippedCount} รายการ
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <p className="text-gray-600 text-sm mb-4">
+                  ประมวลผลจากไฟล์ทั้งหมด {uploadResponse.totalRowsInFile || 0} แถว
+                </p>
+                
+                <button
+                  onClick={() => {
+                    setShowResultModal(false);
+                    resetState();
+                  }}
+                  className="btn bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white border-none w-full"
+                >
+                  ตกลง
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      </div>
     </div>
   );
 }

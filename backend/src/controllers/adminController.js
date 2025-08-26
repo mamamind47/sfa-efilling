@@ -74,7 +74,7 @@ exports.getUserStatistics = async (req, res) => {
     const targetAcademicYearId = targetAcademicYear.academic_year_id;
     const targetAcademicYearName = targetAcademicYear.year_name;
 
-    // 4. Build Base WHERE Clause for Users (including Search)
+    // 4. Build Base WHERE Clause for Users (including Search and Student Status)
     const userWhereClause = {
       role: "student",
     };
@@ -101,6 +101,7 @@ exports.getUserStatistics = async (req, res) => {
         name: true,
         faculty: true,
         major: true,
+        studentStatusName: true,
       },
       orderBy: { name: "asc" },
     });
@@ -165,18 +166,18 @@ exports.getUserStatistics = async (req, res) => {
       const bloodDonateHours = userSubmissions["BloodDonate"] || 0;
       const nsfHours = userSubmissions["NSF"] || 0;
       const aomYoungHours = userSubmissions["AOM YOUNG"] || 0;
-      const knownTypes = ["Certificate", "BloodDonate", "NSF", "AOM YOUNG"];
+      // Calculate individual activity hours
+      const treeHours = userSubmissions["ต้นไม้ล้านต้น ล้านความดี"] || 0;
+      const religiousHours = userSubmissions["religious"] || 0;
+      const socialHours = userSubmissions["social-development"] || 0;
+      
+      const knownTypes = ["Certificate", "BloodDonate", "NSF", "AOM YOUNG", "ต้นไม้ล้านต้น ล้านความดี", "religious", "social-development"];
       const otherHours = Object.entries(userSubmissions)
         .filter(([type]) => !knownTypes.includes(type))
-        .reduce((sum, [, h]) => sum + (h || 0), 0); // Ensure 'h' is treated as 0 if null/undefined
+        .reduce((sum, [, h]) => sum + (h || 0), 0);
       const modLinkHours = modLinkHoursMap[user.username] || 0;
-      const totalHours =
-        modLinkHours +
-        eLearningHours +
-        bloodDonateHours +
-        nsfHours +
-        aomYoungHours +
-        otherHours;
+      const systemHours = eLearningHours + bloodDonateHours + nsfHours + aomYoungHours + treeHours + religiousHours + socialHours + otherHours;
+      const totalHours = modLinkHours + systemHours;
       const scholarshipType = scholarshipTypeMap[user.username];
       const scholarshipStatusDisplay = scholarshipType || "ยังไม่สมัคร";
 
@@ -186,17 +187,33 @@ exports.getUserStatistics = async (req, res) => {
         name: user.name,
         faculty: user.faculty,
         major: user.major,
+        student_status: user.studentStatusName,
         academicYearName: targetAcademicYearName,
         modLinkHours,
+        systemHours,
         eLearningHours,
         bloodDonateHours,
         nsfHours,
         aomYoungHours,
+        treeHours,
+        religiousHours,
+        socialHours,
         otherHours,
         totalHours,
         scholarshipStatusDisplay, // Use the display string
       };
     });
+
+    // Filter to show only:
+    // 1. Students with normal status, OR
+    // 2. Students with other status BUT have hours in the selected academic year
+    combinedResults = combinedResults.filter((user) => {
+      const isNormalStudent = user.student_status === "normal" || !user.student_status;
+      const hasHoursInThisYear = user.totalHours > 0;
+      return isNormalStudent || hasHoursInThisYear;
+    });
+
+    // Students are now filtered to show only normal status OR those with hours in selected year
 
     // Apply post-fetch filters
     if (hourStatus === "completed") {
@@ -313,6 +330,7 @@ exports.getUserStatisticsExport = async (req, res) => {
         major: true,
         email: true,
         phone: true,
+        studentStatusName: true,
       },
       orderBy: { name: "asc" },
       // NO skip, NO take
@@ -389,18 +407,18 @@ exports.getUserStatisticsExport = async (req, res) => {
       const bloodDonateHours = userSubmissions["BloodDonate"] || 0;
       const nsfHours = userSubmissions["NSF"] || 0;
       const aomYoungHours = userSubmissions["AOM YOUNG"] || 0;
-      const knownTypes = ["Certificate", "BloodDonate", "NSF", "AOM YOUNG"];
+      // Calculate individual activity hours
+      const treeHours = userSubmissions["ต้นไม้ล้านต้น ล้านความดี"] || 0;
+      const religiousHours = userSubmissions["religious"] || 0;
+      const socialHours = userSubmissions["social-development"] || 0;
+      
+      const knownTypes = ["Certificate", "BloodDonate", "NSF", "AOM YOUNG", "ต้นไม้ล้านต้น ล้านความดี", "religious", "social-development"];
       const otherHours = Object.entries(userSubmissions)
         .filter(([type]) => !knownTypes.includes(type))
         .reduce((sum, [, h]) => sum + (h || 0), 0);
       const modLinkHours = modLinkHoursMap[user.username] || 0;
-      const totalHours =
-        modLinkHours +
-        eLearningHours +
-        bloodDonateHours +
-        nsfHours +
-        aomYoungHours +
-        otherHours;
+      const systemHours = eLearningHours + bloodDonateHours + nsfHours + aomYoungHours + treeHours + religiousHours + socialHours + otherHours;
+      const totalHours = modLinkHours + systemHours;
       const scholarshipType = scholarshipTypeMap[user.username];
       const scholarshipStatusDisplay = scholarshipType || "ยังไม่สมัคร";
 
@@ -412,18 +430,34 @@ exports.getUserStatisticsExport = async (req, res) => {
         phone: user.phone,
         faculty: user.faculty,
         major: user.major,
+        student_status: user.studentStatusName,
         academicYearName: targetAcademicYearName,
         modLinkHours,
+        systemHours,
         eLearningHours,
         bloodDonateHours,
         nsfHours,
         aomYoungHours,
+        treeHours,
+        religiousHours,
+        socialHours,
         otherHours,
         totalHours,
         scholarshipStatusDisplay,
       };
     });
     // console.log(`[Export] Combined data for ${combinedResults.length} users.`);
+
+    // Filter to show only:
+    // 1. Students with normal status, OR
+    // 2. Students with other status BUT have hours in the selected academic year
+    combinedResults = combinedResults.filter((user) => {
+      const isNormalStudent = user.student_status === "normal" || !user.student_status;
+      const hasHoursInThisYear = user.totalHours > 0;
+      return isNormalStudent || hasHoursInThisYear;
+    });
+    
+    // Students are now filtered to show only normal status OR those with hours in selected year
 
     // Apply Post-Fetch Filters to *ALL* Data
     // console.log(`[Export] Applying post-fetch filters (hourStatus: ${hourStatus}, scholarshipStatus: ${scholarshipStatus})...`);
@@ -468,10 +502,17 @@ exports.getUserStatisticsExport = async (req, res) => {
       { header: "เบอร์โทรศัพท์", key: "phone", width: 15 },
       { header: "คณะ", key: "faculty", width: 30 },
       { header: "สาขาวิชา", key: "major", width: 30 },
+      { header: "สถานะนักศึกษา", key: "student_status", width: 20 },
       {
-        header: "MODLINK",
+        header: "MOD LINK (ชม.)",
         key: "modLinkHours",
-        width: 10,
+        width: 15,
+        style: { numFmt: "0", alignment: { horizontal: "center" } },
+      },
+      {
+        header: "ในระบบ (ชม.)",
+        key: "systemHours",
+        width: 15,
         style: { numFmt: "0", alignment: { horizontal: "center" } },
       },
       {
@@ -495,6 +536,24 @@ exports.getUserStatisticsExport = async (req, res) => {
       {
         header: "AOM YOUNG",
         key: "aomYoungHours",
+        width: 12,
+        style: { numFmt: "0", alignment: { horizontal: "center" } },
+      },
+      {
+        header: "ต้นไม้ล้านต้น",
+        key: "treeHours",
+        width: 12,
+        style: { numFmt: "0", alignment: { horizontal: "center" } },
+      },
+      {
+        header: "ศาสนสถาน",
+        key: "religiousHours",
+        width: 12,
+        style: { numFmt: "0", alignment: { horizontal: "center" } },
+      },
+      {
+        header: "พัฒนาชุมชน",
+        key: "socialHours",
         width: 12,
         style: { numFmt: "0", alignment: { horizontal: "center" } },
       },

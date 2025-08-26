@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แจ้งการอนุมัติคำขอกิจกรรมจิตอาสา</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Sarabun', 'Sukhumvit Set', 'Helvetica Neue', 'Arial', sans-serif;
+            line-height: 1.7;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+            font-size: 16px;
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        
+        .email-container {
+            max-width: 650px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2e7d32, #4caf50);
+            background-color: #2e7d32; /* fallback for email clients that don't support gradients */
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        
+        .header-logo {
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        .content {
+            padding: 40px 35px;
+        }
+        
+        .content h2 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 600;
+            border-bottom: 3px solid #2e7d32;
+            padding-bottom: 15px;
+            letter-spacing: -0.3px;
+        }
+        
+        .content p {
+            margin-bottom: 20px;
+            font-size: 17px;
+            color: #495057;
+            text-align: left;
+            line-height: 1.8;
+        }
+        
+        .status-box {
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+        }
+        
+        .status-box h3 {
+            color: #155724;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .status-text {
+            color: #155724;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 25px 0;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .details-table th {
+            background-color: #e9ecef;
+            color: #495057;
+            font-weight: 700;
+            font-size: 16px;
+            padding: 18px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .details-table td {
+            padding: 18px;
+            border-bottom: 1px solid #dee2e6;
+            color: #495057;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        
+        .details-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 18px;
+            margin: 25px 0;
+            border-radius: 4px;
+        }
+        
+        .info-box h4 {
+            color: #1565c0;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .info-box ul {
+            color: #424242;
+            margin-left: 20px;
+        }
+        
+        .info-box li {
+            margin-bottom: 5px;
+        }
+        
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #2e7d32, #4caf50);
+            background-color: #2e7d32; /* fallback for email clients */
+            color: white !important;
+            padding: 16px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            margin: 25px 0;
+            border: none;
+            cursor: pointer;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        
+        .button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+        }
+        
+        .footer {
+            background-color: #343a40;
+            color: #f8f9fa;
+            padding: 35px;
+            text-align: center;
+        }
+        
+        .footer-content {
+            margin-bottom: 20px;
+        }
+        
+        .footer h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .footer p {
+            font-size: 14px;
+            color: #adb5bd;
+            margin-bottom: 5px;
+        }
+        
+        .disclaimer {
+            background-color: #495057;
+            padding: 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e9ecef;
+            border: 1px solid #6c757d;
+        }
+        
+        .disclaimer strong {
+            color: #ffffff;
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .contact-info {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #ced4da;
+        }
+        
+        .contact-info strong {
+            color: #f8f9fa;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 4px;
+            }
+            
+            .header, .content, .footer {
+                padding: 25px 20px;
+            }
+            
+            .header h1 {
+                font-size: 22px;
+            }
+            
+            .content h2 {
+                font-size: 20px;
+            }
+            
+            .details-table th,
+            .details-table td {
+                padding: 10px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <div class="header-logo">
+                <h1>คำขอได้รับการอนุมัติ</h1>
+            </div>
+        </div>
+        
+        <div class="content">
+            <h2>เรียน {{userName}}</h2>
+            
+            <p>คำขอบันทึกกิจกรรมจิตอาสาของคุณได้ผ่านการพิจารณาและได้รับการอนุมัติเรียบร้อยแล้ว</p>
+            
+            <div class="status-box">
+                <h3>สถานะ: อนุมัติ</h3>
+                <p class="status-text">คำขอของคุณได้รับการอนุมัติแล้ว</p>
+            </div>
+            
+            <table class="details-table">
+                <tr>
+                    <th>รายการ</th>
+                    <th>รายละเอียด</th>
+                </tr>
+                <tr>
+                    <td>หมายเลขอ้างอิง</td>
+                    <td>{{submissionId}}</td>
+                </tr>
+                <tr>
+                    <td>กิจกรรม</td>
+                    <td>{{activityType}}</td>
+                </tr>
+                <tr>
+                    <td>จำนวนชั่วโมง</td>
+                    <td>{{hours}} ชั่วโมง</td>
+                </tr>
+                <tr>
+                    <td>วันที่อนุมัติ</td>
+                    <td>{{approvedDate}}</td>
+                </tr>
+                <tr>
+                    <td>ผู้อนุมัติ</td>
+                    <td>{{approvedBy}}</td>
+                </tr>
+            </table>
+            
+            <div style="text-align: center;">
+                <a href="{{systemUrl}}" class="button">เข้าสู่ระบบ</a>
+            </div>
+            
+        </div>
+        
+        <div class="footer">
+            <div class="footer-content">
+                <h3> ระบบยื่นเอกสารนักศึกษาทุน กยศ. มจธ. | Volunteer Student Loan e-Filling (VSF) </h3>
+                <p>มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าธนบุรี</p>
+                <p>King Mongkut's University of Technology Thonburi</p>
+            </div>
+            
+            <div class="disclaimer">
+                อีเมลนี้ส่งจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ<br>
+                หากมีข้อสงสัยหรือต้องการความช่วยเหลือ กรุณาติดต่อ 02-470-9982
+            </div>
+        </div>
+    </div>
+</body>
+</html>

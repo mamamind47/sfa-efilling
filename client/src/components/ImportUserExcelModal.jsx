@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { FileSpreadsheet, Loader2, X } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 import * as XLSX from "xlsx";
@@ -7,17 +7,33 @@ import { toast } from "react-hot-toast";
 
 function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [studentIds, setStudentIds] = useState([]);
+  const [studentData, setStudentData] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const reset = () => {
     setSelectedFile(null);
-    setStudentIds([]);
+    setStudentData([]);
     setSearchTerm("");
     setError(null);
   };
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && isOpen && !loading) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [isOpen, loading, onClose]);
 
   const parseFile = useCallback((file) => {
     setLoading(true);
@@ -30,12 +46,15 @@ function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        const extractedIds = rows
+        const extractedData = rows
           .slice(1) // skip header
-          .map((r) => String(r[0] || "").trim())
-          .filter((id) => /^\d{11}$/.test(id));
+          .map((r) => ({
+            studentId: String(r[0] || "").trim(),
+            scholarshipType: String(r[1] || "").trim()
+          }))
+          .filter((item) => /^\d{11}$/.test(item.studentId));
 
-        setStudentIds(extractedIds);
+        setStudentData(extractedData);
       } catch (err) {
         setError("เกิดข้อผิดพลาดในการอ่านไฟล์");
       } finally {
@@ -76,8 +95,16 @@ function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
 
     try {
       const res = await apiClient.post("/admin/users/import-excel", formData);
+      console.log('Upload response:', res.data);
+      const { added, updated, failed } = res.data;
+      
+      let message = "";
+      if (added?.length > 0) message += `เพิ่มใหม่ ${added.length} รายการ `;
+      if (updated?.length > 0) message += `อัปเดท ${updated.length} รายการ `;
+      if (failed?.length > 0) message += `ไม่สำเร็จ ${failed.length} รายการ`;
+      
+      toast.success(message || "อัปโหลดเสร็จสิ้น");
       onSuccess?.(res.data);
-      toast.success("อัปโหลดรายชื่อสำเร็จ");
       reset();
       onClose();
     } catch (err) {
@@ -87,22 +114,29 @@ function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
-  const filteredIds = useMemo(() => {
+  const filteredData = useMemo(() => {
     const q = searchTerm.trim();
-    return studentIds.filter((id) => id.includes(q));
-  }, [studentIds, searchTerm]);
+    return studentData.filter((item) => item.studentId.includes(q));
+  }, [studentData, searchTerm]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+    <div 
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) {
+          onClose();
+        }
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-2">
           <h2 className="text-lg font-bold flex items-center gap-2">
             <FileSpreadsheet size={20} />
             อัปโหลดรายชื่อนักศึกษาจาก Excel
           </h2>
-          <button onClick={onClose} className="btn btn-sm btn-ghost">
+          <button onClick={onClose} className="btn btn-sm btn-ghost" disabled={loading}>
             <X size={16} />
           </button>
         </div>
@@ -130,11 +164,11 @@ function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
 
         {error && <div className="text-error text-sm">{error}</div>}
 
-        {studentIds.length > 0 && !loading && (
+        {studentData.length > 0 && !loading && (
           <>
             <div className="flex justify-between items-center">
               <p className="font-semibold">
-                รายชื่อนักศึกษาทั้งหมด ({filteredIds.length}/{studentIds.length}
+                รายชื่อนักศึกษาทั้งหมด ({filteredData.length}/{studentData.length}
                 )
               </p>
               <input
@@ -151,12 +185,14 @@ function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
                 <thead>
                   <tr>
                     <th>รหัสนักศึกษา</th>
+                    <th>ประเภททุน</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredIds.map((id) => (
-                    <tr key={id}>
-                      <td>{id}</td>
+                  {filteredData.map((item) => (
+                    <tr key={item.studentId}>
+                      <td>{item.studentId}</td>
+                      <td>{item.scholarshipType || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

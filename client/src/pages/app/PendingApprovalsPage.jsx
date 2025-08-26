@@ -9,6 +9,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Edit,
+  ClipboardCheck,
+  Search,
+  Filter,
+  Calendar,
+  Users,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
 
@@ -317,37 +322,82 @@ function PendingApprovalsPage() {
   };
 
   const renderBatchRejectPopup = () => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowRejectPopup(false);
+      }
+    };
+    
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
-          <h2 className="text-lg font-semibold mb-4">
-            ระบุเหตุผลในการปฏิเสธ (สำหรับ Certificate ที่เลือก)
-          </h2>
-          <textarea
-            className="textarea textarea-bordered w-full"
-            rows={3}
-            value={rejectionReason}
-            onChange={(e) => setRejectionReason(e.target.value)}
-            placeholder="เหตุผล..."
-          ></textarea>
-          <div className="mt-4 flex justify-end gap-2">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
+        onClick={() => setShowRejectPopup(false)}
+        onKeyDown={handleKeyDown}
+        tabIndex={-1}
+      >
+        <div 
+          className="bg-white rounded-xl shadow-2xl max-w-lg w-full border border-orange-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-t-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center space-x-2">
+                <XCircle className="h-5 w-5" />
+                <span>ปฏิเสธคำขอ</span>
+              </h2>
+              <button
+                className="text-white hover:text-gray-200 transition-colors"
+                onClick={() => setShowRejectPopup(false)}
+                disabled={loadingBatch}
+              >
+                <X size={24} />
+              </button>
+            </div>
+          </div>
+          
+          {/* Content */}
+          <div className="p-6 space-y-4">
+            <p className="text-gray-700">
+              กรุณาระบุเหตุผลในการปฏิเสธสำหรับ Certificate ที่เลือก
+            </p>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                เหตุผลในการปฏิเสธ *
+              </label>
+              <textarea
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none"
+                rows={4}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="ระบุเหตุผลที่ชัดเจน..."
+                disabled={loadingBatch}
+                autoFocus
+              />
+            </div>
+          </div>
+          
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 rounded-b-xl flex justify-end space-x-3">
             <button
-              className="btn btn-ghost"
+              className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
               onClick={() => setShowRejectPopup(false)}
               disabled={loadingBatch}
             >
               ยกเลิก
             </button>
             <button
-              className="btn bg-red-500 hover:bg-red-600 text-white"
+              className="flex items-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => handleBatchReview("rejected", rejectionReason)}
               disabled={!rejectionReason.trim() || loadingBatch}
             >
               {loadingBatch ? (
-                <span className="loading loading-spinner loading-xs"></span>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                "ยืนยันการปฏิเสธ"
+                <XCircle size={16} />
               )}
+              <span>ยืนยันการปฏิเสธ</span>
             </button>
           </div>
         </div>
@@ -360,137 +410,213 @@ function PendingApprovalsPage() {
     const isCert = reviewingSubmission.type === "Certificate";
     const requestedHoursDisplay =
       reviewingSubmission.hours_requested ?? reviewingSubmission.hours ?? "-";
+      
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeIndividualReviewModal();
+      }
+    };
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-        <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-          <div className="flex justify-between items-center border-b pb-2 mb-4">
-            <h2 className="text-xl font-semibold">ตรวจสอบรายการ</h2>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={closeIndividualReviewModal}
-              disabled={loadingIndividual}
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="mb-4 space-y-1 text-sm">
-            <p>
-              <strong>ผู้ส่ง:</strong> {reviewingSubmission.users?.name} (
-              {reviewingSubmission.users?.username})
-            </p>
-            <p>
-              <strong>ประเภท:</strong>{" "}
-              {reviewingSubmission.type === "Certificate"
-                ? reviewingSubmission.certificate_type?.category || "หมวดหมู่?"
-                : reviewingSubmission.type}
-            </p>
-            {reviewingSubmission.certificate_type?.certificate_name && (
-              <p>
-                <strong>หัวข้อ:</strong>{" "}
-                {reviewingSubmission.certificate_type.certificate_name}
-              </p>
-            )}
-            {reviewingSubmission.topic && (
-              <p>
-                <strong>รายละเอียด/หัวข้อ:</strong> {reviewingSubmission.topic}
-              </p>
-            )}
-            <p>
-              <strong>ชั่วโมงที่ยื่น:</strong> {requestedHoursDisplay}
-            </p>
-            <p>
-              <strong>ปีการศึกษา:</strong>{" "}
-              {reviewingSubmission.academic_years?.year_name || "-"}
-            </p>
-          </div>
-
-          <div className="mb-4">
-            <label className="label font-semibold">การดำเนินการ:</label>
-            <div className="flex gap-4">
+      <div 
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
+        onClick={closeIndividualReviewModal}
+        onKeyDown={handleKeyDown}
+        tabIndex={-1}
+      >
+        <div 
+          className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-orange-200"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold flex items-center space-x-2">
+                <Edit className="h-5 w-5" />
+                <span>ตรวจสอบรายการ</span>
+              </h2>
               <button
-                className={`btn btn-sm flex-1 ${
-                  individualStatus === "approved"
-                    ? "btn-success text-white"
-                    : "btn-outline btn-success"
-                }`}
-                onClick={() => setIndividualStatus("approved")}
+                className="text-white hover:text-gray-200 transition-colors"
+                onClick={closeIndividualReviewModal}
                 disabled={loadingIndividual}
               >
-                <CheckCircle2 size={16} /> อนุมัติ
-              </button>
-              <button
-                className={`btn btn-sm flex-1 ${
-                  individualStatus === "rejected"
-                    ? "btn-error text-white"
-                    : "btn-outline btn-error"
-                }`}
-                onClick={() => setIndividualStatus("rejected")}
-                disabled={loadingIndividual}
-              >
-                <XCircle size={16} /> ปฏิเสธ
+                <X size={24} />
               </button>
             </div>
           </div>
+          
+          {/* Content */}
+          <div className="overflow-y-auto max-h-[calc(90vh-180px)]">
+            <div className="p-6 space-y-6">
 
-          {individualStatus === "approved" && !isCert && (
-            <div className="mb-4">
-              <label className="label font-semibold" htmlFor="approvedHours">
-                จำนวนชั่วโมงที่อนุมัติ:
-                <span className="text-xs font-normal text-gray-500 ml-2">
-                  (ค่าที่ยื่น: {requestedHoursDisplay})
-                </span>
-              </label>
-              <input
-                id="approvedHours"
-                type="number"
-                min="0"
-                className="input input-bordered w-full"
-                value={individualHours}
-                onChange={(e) => setIndividualHours(e.target.value)}
-                placeholder={`ระบุจำนวนชั่วโมง (ค่าเดิม: ${requestedHoursDisplay})`}
-                disabled={loadingIndividual}
-                required
-              />
-            </div>
-          )}
-          {individualStatus === "rejected" && (
-            <div className="mb-4">
-              <label className="label font-semibold" htmlFor="rejectionReason">
-                เหตุผลในการปฏิเสธ:
-              </label>
-              <textarea
-                id="rejectionReason"
-                className="textarea textarea-bordered w-full"
-                rows={3}
-                value={individualReason}
-                onChange={(e) => setIndividualReason(e.target.value)}
-                placeholder="ระบุเหตุผล..."
-                disabled={loadingIndividual}
-                required
-              ></textarea>
-            </div>
-          )}
+              {/* Submission Details */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center space-x-2">
+                  <Users className="h-5 w-5 text-orange-500" />
+                  <span>รายละเอียดคำขอ</span>
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">ผู้ส่งคำขอ</label>
+                      <p className="text-gray-900 font-medium">
+                        {reviewingSubmission.users?.name} ({reviewingSubmission.users?.username})
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">ประเภทกิจกรรม</label>
+                      <p className="text-gray-900">
+                        {reviewingSubmission.type === "Certificate"
+                          ? reviewingSubmission.certificate_type?.category || "หมวดหมู่?"
+                          : reviewingSubmission.type === "religious" 
+                          ? "พัฒนาศาสนสถาน"
+                          : reviewingSubmission.type === "social-development"
+                          ? "พัฒนาชุมชน"
+                          : reviewingSubmission.type}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">ชั่วโมงที่ยื่น</label>
+                      <p className="text-gray-900 font-semibold">
+                        {requestedHoursDisplay} {requestedHoursDisplay !== "-" && "ชั่วโมง"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {(reviewingSubmission.certificate_type?.certificate_name || reviewingSubmission.topic) && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-600">หัวข้อ/รายละเอียด</label>
+                        <p className="text-gray-900">
+                          {reviewingSubmission.certificate_type?.certificate_name || reviewingSubmission.topic}
+                        </p>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <label className="text-sm font-medium text-gray-600">ปีการศึกษา</label>
+                      <p className="text-gray-900">
+                        {reviewingSubmission.academic_years?.year_name || "-"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
-          <div className="mt-6 pt-4 border-t flex justify-end gap-2">
+              {/* Action Selection */}
+              <div>
+                <label className="block text-lg font-semibold text-gray-800 mb-3">
+                  การดำเนินการ
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    className={`flex items-center justify-center space-x-2 p-4 rounded-lg border-2 transition-all ${
+                      individualStatus === "approved"
+                        ? "bg-green-500 border-green-500 text-white shadow-lg"
+                        : "bg-white border-gray-300 text-gray-700 hover:border-green-400 hover:bg-green-50"
+                    }`}
+                    onClick={() => setIndividualStatus("approved")}
+                    disabled={loadingIndividual}
+                  >
+                    <CheckCircle2 size={20} />
+                    <span className="font-medium">อนุมัติ</span>
+                  </button>
+                  
+                  <button
+                    className={`flex items-center justify-center space-x-2 p-4 rounded-lg border-2 transition-all ${
+                      individualStatus === "rejected"
+                        ? "bg-red-500 border-red-500 text-white shadow-lg"
+                        : "bg-white border-gray-300 text-gray-700 hover:border-red-400 hover:bg-red-50"
+                    }`}
+                    onClick={() => setIndividualStatus("rejected")}
+                    disabled={loadingIndividual}
+                  >
+                    <XCircle size={20} />
+                    <span className="font-medium">ปฏิเสธ</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Approved Hours Input */}
+              {individualStatus === "approved" && !isCert && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="approvedHours">
+                    จำนวนชั่วโมงที่อนุมัติ *
+                    <span className="text-xs text-gray-500 ml-2">
+                      (ค่าที่ยื่น: {requestedHoursDisplay} ชั่วโมง)
+                    </span>
+                  </label>
+                  <input
+                    id="approvedHours"
+                    type="number"
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                    value={individualHours}
+                    onChange={(e) => setIndividualHours(e.target.value)}
+                    placeholder={`ระบุจำนวนชั่วโมง (ค่าเดิม: ${requestedHoursDisplay})`}
+                    disabled={loadingIndividual}
+                    required
+                  />
+                </div>
+              )}
+              
+              {/* Rejection Reason */}
+              {individualStatus === "rejected" && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2" htmlFor="rejectionReason">
+                    เหตุผลในการปฏิเสธ *
+                  </label>
+                  <textarea
+                    id="rejectionReason"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors resize-none"
+                    rows={4}
+                    value={individualReason}
+                    onChange={(e) => setIndividualReason(e.target.value)}
+                    placeholder="ระบุเหตุผลที่ชัดเจน..."
+                    disabled={loadingIndividual}
+                    required
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
             <button
-              className="btn btn-ghost"
+              className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors font-medium"
               onClick={closeIndividualReviewModal}
               disabled={loadingIndividual}
             >
               ยกเลิก
             </button>
             <button
-              className="btn btn-primary"
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
+                individualStatus === "approved" 
+                  ? "bg-green-500 hover:bg-green-600 text-white" 
+                  : individualStatus === "rejected"
+                  ? "bg-red-500 hover:bg-red-600 text-white"
+                  : "bg-blue-500 hover:bg-blue-600 text-white"
+              }`}
               onClick={handleIndividualReview}
               disabled={!individualStatus || loadingIndividual}
             >
               {loadingIndividual ? (
-                <span className="loading loading-spinner loading-xs"></span>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : individualStatus === "approved" ? (
+                <CheckCircle2 size={16} />
+              ) : individualStatus === "rejected" ? (
+                <XCircle size={16} />
               ) : (
-                "ยืนยัน"
+                <Edit size={16} />
               )}
+              <span>
+                {individualStatus === "approved" ? "ยืนยันการอนุมัติ" : 
+                 individualStatus === "rejected" ? "ยืนยันการปฏิเสธ" : "ยืนยัน"}
+              </span>
             </button>
           </div>
         </div>
@@ -541,305 +667,422 @@ function PendingApprovalsPage() {
 
   // --- Main Render ---
   return (
-    <div className="flex h-screen relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
       <Toaster position="top-center" reverseOrder={false} />
-      <div className="flex-1 p-4 md:p-6 space-y-6 overflow-y-auto overflow-x-hidden">
-        <h1 className="text-2xl font-bold">รายการคำขอที่รออนุมัติ</h1>
+      
+      {/* Header Section */}
+      <div className="bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-white">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-center space-x-3">
+            <ClipboardCheck className="h-6 w-6" />
+            <h1 className="text-2xl font-bold">รายการคำขอที่รออนุมัติ</h1>
+          </div>
+          <p className="text-center text-orange-100 mt-2">จัดการและตรวจสอบคำขอจิตอาสาที่รออนุมัติ</p>
+        </div>
+      </div>
 
-        {/* Filters and Search */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center flex-wrap gap-3 md:gap-4 mb-4 p-4 bg-base-200 rounded-lg">
-          <input
-            type="text"
-            className="input input-bordered input-sm focus:outline-none focus:ring-0 focus:border-gray-300 w-full sm:w-auto flex-grow"
-            placeholder="ค้นหา ชื่อ รหัส สาขา หัวข้อ หมวดหมู่..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          <select
-            className="select select-sm select-bordered focus:outline-none focus:ring-0 focus:border-gray-300 w-full sm:w-auto"
-            value={sortOption}
-            onChange={(e) => {
-              setSortOption(e.target.value);
-              setCurrentPage(1);
-            }}
-          >
-            <option value="latest">ใหม่สุดก่อน</option>
-            <option value="oldest">เก่าสุดก่อน</option>
-          </select>
-          <select
-            className="select select-sm select-bordered focus:outline-none focus:ring-0 focus:border-gray-300 w-full sm:w-auto"
-            value={filter}
-            onChange={(e) => {
-              setFilter(e.target.value);
-              setCurrentPage(1);
-              setSearchQuery(""); // Reset search on filter change
-            }}
-          >
-            <option value="ALL_NON_CERTIFICATE">ทั้งหมด (ยกเว้นเรียนออนไลน์)</option>
-            <option value="Certificate">เรียนออนไลน์/e-Learning</option>
-            <option value="BloodDonate">บริจาคเลือด</option>
-            <option value="NSF">ออมเงิน</option>
-            <option value="AOM YOUNG">AOM YOUNG</option>
-            <option value="ต้นไม้ล้านต้น ล้านความดี">ต้นไม้ล้านต้น ล้านความดี</option>
-            <option value="religious">พัฒนาศาสนสถาน</option>
-            <option value="social-development">พัฒนาชุมชน</option>
-          </select>
+      <div className="container mx-auto px-6 py-6 space-y-6">
+        {/* Search and Filters Section */}
+        <div className="bg-white rounded-lg shadow-md border border-orange-100 p-5">
+          <div className="flex items-center space-x-2 mb-4">
+            <Search className="h-5 w-5 text-orange-500" />
+            <h2 className="text-lg font-semibold text-gray-800">ค้นหาและกรองข้อมูล</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search Input */}
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ค้นหา
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                  placeholder="ค้นหา ชื่อ รหัส สาขา หัวข้อ หมวดหมู่..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Calendar className="inline h-4 w-4 mr-1" />
+                เรียงตาม
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
+                value={sortOption}
+                onChange={(e) => {
+                  setSortOption(e.target.value);
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="latest">ใหม่สุดก่อน</option>
+                <option value="oldest">เก่าสุดก่อน</option>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Filter className="inline h-4 w-4 mr-1" />
+                หมวดหมู่
+              </label>
+              <select
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors bg-white"
+                value={filter}
+                onChange={(e) => {
+                  setFilter(e.target.value);
+                  setCurrentPage(1);
+                  setSearchQuery(""); // Reset search on filter change
+                }}
+              >
+                <option value="ALL_NON_CERTIFICATE">ทั้งหมด (ยกเว้นเรียนออนไลน์)</option>
+                <option value="Certificate">เรียนออนไลน์/e-Learning</option>
+                <option value="BloodDonate">บริจาคเลือด</option>
+                <option value="NSF">ออมเงิน</option>
+                <option value="AOM YOUNG">AOM YOUNG</option>
+                <option value="ต้นไม้ล้านต้น ล้านความดี">ต้นไม้ล้านต้น ล้านความดี</option>
+                <option value="religious">พัฒนาศาสนสถาน</option>
+                <option value="social-development">พัฒนาชุมชน</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Batch Action Buttons */}
         {selectedIds.length > 0 && filter === "Certificate" && (
-          <div className="flex gap-3 items-center mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <span className="text-sm font-medium text-blue-700">
-              เลือก {selectedIds.length} รายการ
-            </span>
-            <button
-              className="btn btn-sm bg-green-500 hover:bg-green-600 text-white"
-              onClick={() => handleBatchReview("approved")}
-              disabled={!canBatchReview || loadingBatch}
-              title={
-                canBatchReview
-                  ? "อนุมัติ Certificate ที่เลือก"
-                  : "เลือกเฉพาะ Certificate เพื่อใช้การอนุมัติหลายรายการ"
-              }
-            >
-              <CheckCircle2 size={16} className="mr-1" /> อนุมัติ{" "}
-              {canBatchReview ? `(${selectedIds.length})` : ""}
-              {loadingBatch && (
-                <span className="loading loading-spinner loading-xs ml-2"></span>
-              )}
-            </button>
-            <button
-              className="btn btn-sm bg-red-500 hover:bg-red-600 text-white"
-              onClick={() => setShowRejectPopup(true)}
-              disabled={!canBatchReview || loadingBatch}
-              title={
-                canBatchReview
-                  ? "ปฏิเสธ Certificate ที่เลือก"
-                  : "เลือกเฉพาะ Certificate เพื่อใช้การปฏิเสธหลายรายการ"
-              }
-            >
-              <XCircle size={16} className="mr-1" /> ปฏิเสธ{" "}
-              {canBatchReview ? `(${selectedIds.length})` : ""}
-              {loadingBatch && (
-                <span className="loading loading-spinner loading-xs ml-2"></span>
-              )}
-            </button>
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200 shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-blue-600" />
+                <span className="text-sm font-semibold text-blue-800">
+                  เลือก {selectedIds.length} รายการแล้ว
+                </span>
+              </div>
+              
+              <div className="flex flex-wrap gap-3">
+                <button
+                  className="flex items-center space-x-2 bg-green-500 hover:bg-green-600 text-white px-4 py-2 text-sm rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => handleBatchReview("approved")}
+                  disabled={!canBatchReview || loadingBatch}
+                  title={
+                    canBatchReview
+                      ? "อนุมัติ Certificate ที่เลือก"
+                      : "เลือกเฉพาะ Certificate เพื่อใช้การอนุมัติหลายรายการ"
+                  }
+                >
+                  {loadingBatch ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={16} />
+                  )}
+                  <span className="font-medium">
+                    อนุมัติ {canBatchReview ? `(${selectedIds.length})` : ""}
+                  </span>
+                </button>
+                
+                <button
+                  className="flex items-center space-x-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 text-sm rounded-lg transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setShowRejectPopup(true)}
+                  disabled={!canBatchReview || loadingBatch}
+                  title={
+                    canBatchReview
+                      ? "ปฏิเสธ Certificate ที่เลือก"
+                      : "เลือกเฉพาะ Certificate เพื่อใช้การปฏิเสธหลายรายการ"
+                  }
+                >
+                  {loadingBatch ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <XCircle size={16} />
+                  )}
+                  <span className="font-medium">
+                    ปฏิเสธ {canBatchReview ? `(${selectedIds.length})` : ""}
+                  </span>
+                </button>
+              </div>
+            </div>
+            
             {!canBatchReview && selectedIds.length > 0 && (
-              <span className="text-xs text-orange-600 italic">
-                การดำเนินการหลายรายการใช้ได้กับ Certificate เท่านั้น
-              </span>
+              <div className="mt-3 p-3 bg-orange-100 border border-orange-200 rounded-lg">
+                <span className="text-sm text-orange-700 font-medium">
+                  💡 การดำเนินการหลายรายการใช้ได้กับ Certificate เท่านั้น
+                </span>
+              </div>
             )}
           </div>
         )}
 
         {/* Table */}
-        <div className="overflow-x-auto shadow-md rounded-lg">
-          <table className="table table-zebra w-full text-sm">
-            <thead className="bg-base-300">
-              <tr>
-                <th className="p-2 w-10">
-                  {filter === "Certificate" &&
-                    certificateSubmissionsOnPage.length > 0 && (
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-sm"
-                        checked={
-                          certificateSubmissionsOnPage.length > 0 &&
-                          selectedIds.length ===
-                            certificateSubmissionsOnPage.length &&
-                          certificateSubmissionsOnPage.every((s) =>
-                            selectedIds.includes(s.submission_id)
-                          )
-                        }
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedIds(
-                              certificateSubmissionsOnPage.map(
-                                (s) => s.submission_id
-                              )
-                            );
-                          } else {
-                            setSelectedIds([]);
+        <div className="bg-white rounded-lg shadow-md border border-orange-100 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gradient-to-r from-orange-500 to-amber-500 text-white">
+                <tr>
+                  <th className="px-3 py-3 text-left font-semibold w-10">
+                    {filter === "Certificate" &&
+                      certificateSubmissionsOnPage.length > 0 && (
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-orange-600 bg-white border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                          checked={
+                            certificateSubmissionsOnPage.length > 0 &&
+                            selectedIds.length ===
+                              certificateSubmissionsOnPage.length &&
+                            certificateSubmissionsOnPage.every((s) =>
+                              selectedIds.includes(s.submission_id)
+                            )
                           }
-                        }}
-                        title="เลือกทั้งหมด (เฉพาะ Certificate ในหน้านี้)"
-                      />
-                    )}
-                </th>
-                <th className="p-2 min-w-[180px]">ชื่อ-ข้อมูลผู้ส่ง</th>
-                {showTypeColumn && <th className="p-2">ประเภท/หมวดหมู่</th>}
-                {showTopicColumn && (
-                  <th className="p-2 max-w-[200px]">หัวข้อ/รายละเอียด</th>
-                )}
-                <th className="p-2">ชั่วโมง</th>
-                {filter !== "Certificate" && (
-                  <th className="p-2">ปีการศึกษา</th>
-                )}
-                <th className="p-2">ส่งเมื่อ</th>
-                <th className="p-2">ไฟล์แนบ</th>
-                {showActionsColumn && <th className="p-2">ดำเนินการ</th>}
-              </tr>
-            </thead>
-
-            <tbody>
-              {submissions.length === 0 &&
-                !loadingBatch &&
-                !loadingIndividual && (
-                  <tr>
-                    <td
-                      colSpan={tableColspan}
-                      className="text-center p-5 text-gray-500"
-                    >
-                      ไม่พบข้อมูลที่รออนุมัติตามเงื่อนไขที่เลือก
-                    </td>
-                  </tr>
-                )}
-              {submissions.map((s) => (
-                <tr key={s.submission_id} className="hover">
-                  <td className="p-2">
-                    {s.type === "Certificate" ? (
-                      <input
-                        type="checkbox"
-                        className="checkbox checkbox-sm"
-                        checked={selectedIds.includes(s.submission_id)}
-                        onChange={() => toggleSelect(s.submission_id)}
-                        disabled={loadingBatch}
-                      />
-                    ) : (
-                      <span className="text-gray-300">-</span>
-                    )}
-                  </td>
-                  <td className="p-2">
-                    <button
-                      className="font-medium text-blue-600 hover:underline"
-                      onClick={() => {
-                        setSearchQuery(s.users?.username || "");
-                        setCurrentPage(1);
-                      }}
-                    >
-                      {s.users?.name || "-"}
-                    </button>
-                    <div className="text-xs text-gray-500 leading-tight">
-                      <div>{s.users?.username || "-"}</div>
-                      <div>{s.users?.faculty || "-"}</div>
-                      <div>{s.users?.major || "-"}</div>
-                    </div>
-                  </td>
-                  {showTypeColumn && (
-                    <td className="p-2">
-                      {s.type === "Certificate" ? (
-                        s.certificate_type?.category || (
-                          <span className="text-gray-400 italic">ไม่มีหมวดหมู่</span>
-                        )
-                      ) : s.type === "religious" ? (
-                        "พัฒนาศาสนสถาน"
-                      ) : s.type === "social-development" ? (
-                        "พัฒนาชุมชน"
-                      ) : (
-                        s.type
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIds(
+                                certificateSubmissionsOnPage.map(
+                                  (s) => s.submission_id
+                                )
+                              );
+                            } else {
+                              setSelectedIds([]);
+                            }
+                          }}
+                          title="เลือกทั้งหมด (เฉพาะ Certificate ในหน้านี้)"
+                        />
                       )}
-                    </td>
+                  </th>
+                  <th className="px-3 py-3 text-left font-semibold min-w-[180px]">
+                    <div className="flex items-center space-x-2">
+                      <Users className="h-4 w-4" />
+                      <span>ผู้ส่งคำขอ</span>
+                    </div>
+                  </th>
+                  {showTypeColumn && (
+                    <th className="px-3 py-3 text-left font-semibold">
+                      ประเภท/หมวดหมู่
+                    </th>
                   )}
                   {showTopicColumn && (
-                    <td
-                      className="p-2 max-w-[200px] truncate"
-                      title={
-                        s.certificate_type?.certificate_name || s.topic || "-"
-                      }
-                    >
-                      {s.certificate_type?.certificate_name || s.topic || "-"}
-                    </td>
+                    <th className="px-3 py-3 text-left font-semibold max-w-[180px]">
+                      หัวข้อ/รายละเอียด
+                    </th>
                   )}
-                  <td className="p-2">
-                    {s.type === "Certificate"
-                      ? s.certificate_type?.hours ?? "-"
-                      : s.hours_requested ?? s.hours ?? "-"}
-                  </td>
-                  {s.type !== "Certificate" && (
-                    <td className="p-2">
-                      {s.academic_years?.year_name || "-"}
-                    </td>
+                  <th className="px-3 py-3 text-left font-semibold">
+                    ชั่วโมง
+                  </th>
+                  {filter !== "Certificate" && (
+                    <th className="px-3 py-3 text-left font-semibold">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>ปีการศึกษา</span>
+                      </div>
+                    </th>
                   )}
-                  <td className="p-2">
-                    {new Date(s.created_at).toLocaleString("th-TH", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}
-                  </td>
-                  <td className="p-2">
-                    {s.submission_files?.length > 0 ? (
-                      <button
-                        className="btn btn-xs btn-outline px-2"
-                        onClick={() => openPreviewDrawer(s.submission_files)}
-                        title={`ดูไฟล์ (${s.submission_files.length})`}
-                      >
-                        <Eye size={14} /> ({s.submission_files.length})
-                      </button>
-                    ) : (
-                      "-"
-                    )}
-                  </td>
+                  <th className="px-3 py-3 text-left font-semibold">
+                    ส่งเมื่อ
+                  </th>
+                  <th className="px-3 py-3 text-left font-semibold">
+                    ไฟล์แนบ
+                  </th>
                   {showActionsColumn && (
-                    <td className="p-2">
-                      {!["Certificate"].includes(s.type) ? (
-                        <button
-                          className="btn btn-xs btn-outline btn-info"
-                          onClick={() => openIndividualReviewModal(s)}
-                          disabled={loadingIndividual || loadingBatch}
-                          title="ตรวจสอบรายการนี้"
-                        >
-                          <Edit size={14} /> ตรวจสอบ
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic">-</span>
-                      )}
-                    </td>
+                    <th className="px-3 py-3 text-left font-semibold">
+                      ดำเนินการ
+                    </th>
                   )}
                 </tr>
-              ))}
-            </tbody>
+              </thead>
 
-            <tfoot>
-              <tr>
-                <td colSpan={tableColspan}>
-                  <div className="flex justify-center items-center gap-3 my-4">
-                    <button
-                      className="btn btn-sm btn-outline"
-                      disabled={
-                        currentPage === 1 || loadingBatch || loadingIndividual
-                      }
-                      onClick={() => setCurrentPage((p) => p - 1)}
-                    >
-                      <ChevronLeft size={16} /> ก่อนหน้า
-                    </button>
-                    <span className="text-sm">
-                      หน้า {currentPage} / {totalPages}
-                    </span>
-                    <button
-                      className="btn btn-sm btn-outline"
-                      disabled={
-                        currentPage === totalPages ||
-                        loadingBatch ||
-                        loadingIndividual
-                      }
-                      onClick={() => setCurrentPage((p) => p + 1)}
-                    >
-                      ถัดไป <ChevronRight size={16} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+              <tbody className="divide-y divide-gray-200">
+                {submissions.length === 0 &&
+                  !loadingBatch &&
+                  !loadingIndividual && (
+                    <tr>
+                      <td
+                        colSpan={tableColspan}
+                        className="px-3 py-10 text-center text-gray-500"
+                      >
+                        <div className="flex flex-col items-center justify-center space-y-3">
+                          <ClipboardCheck className="h-10 w-10 text-gray-300" />
+                          <p className="font-medium">ไม่พบข้อมูลที่รออนุมัติ</p>
+                          <p className="text-sm">ตามเงื่อนไขที่เลือก</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                {submissions.map((s, index) => (
+                  <tr 
+                    key={s.submission_id} 
+                    className={`hover:bg-orange-50 transition-colors ${
+                      index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                    }`}
+                  >
+                    <td className="px-3 py-3">
+                      {s.type === "Certificate" ? (
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 text-orange-600 bg-gray-100 border-gray-300 rounded focus:ring-orange-500 focus:ring-2"
+                          checked={selectedIds.includes(s.submission_id)}
+                          onChange={() => toggleSelect(s.submission_id)}
+                          disabled={loadingBatch}
+                        />
+                      ) : (
+                        <span className="text-gray-300 text-sm">-</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="space-y-1">
+                        <button
+                          className="font-semibold text-orange-600 hover:text-orange-800 hover:underline transition-colors text-sm"
+                          onClick={() => {
+                            setSearchQuery(s.users?.username || "");
+                            setCurrentPage(1);
+                          }}
+                        >
+                          {s.users?.name || "-"}
+                        </button>
+                        <div className="text-xs text-gray-600 space-y-0.5">
+                          <div className="font-mono">{s.users?.username || "-"}</div>
+                          <div>{s.users?.faculty || "-"}</div>
+                          <div className="text-gray-500 truncate max-w-[140px]">{s.users?.major || "-"}</div>
+                        </div>
+                      </div>
+                    </td>
+                    {showTypeColumn && (
+                      <td className="px-3 py-3">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          {s.type === "Certificate" ? (
+                            s.certificate_type?.category || "ไม่มีหมวดหมู่"
+                          ) : s.type === "religious" ? (
+                            "พัฒนาศาสนสถาน"
+                          ) : s.type === "social-development" ? (
+                            "พัฒนาชุมชน"
+                          ) : (
+                            s.type
+                          )}
+                        </span>
+                      </td>
+                    )}
+                    {showTopicColumn && (
+                      <td 
+                        className="px-3 py-3 max-w-[180px]" 
+                        title={s.certificate_type?.certificate_name || s.topic || "-"}
+                      >
+                        <div className="text-sm text-gray-900 truncate">
+                          {s.certificate_type?.certificate_name || s.topic || "-"}
+                        </div>
+                      </td>
+                    )}
+                    <td className="px-3 py-3">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
+                        {s.type === "Certificate"
+                          ? s.certificate_type?.hours ?? "-"
+                          : s.hours_requested ?? s.hours ?? "-"}
+                        {(s.type !== "Certificate" && (s.hours_requested || s.hours)) && " ชม."}
+                      </span>
+                    </td>
+                    {s.type !== "Certificate" && (
+                      <td className="px-3 py-3">
+                        <span className="text-sm text-gray-900">
+                          {s.academic_years?.year_name || "-"}
+                        </span>
+                      </td>
+                    )}
+                    <td className="px-3 py-3">
+                      <span className="text-sm text-gray-600">
+                        {new Date(s.created_at).toLocaleString("th-TH", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })}
+                      </span>
+                    </td>
+                    <td className="px-3 py-3">
+                      {s.submission_files?.length > 0 ? (
+                        <button
+                          className="flex items-center space-x-1 text-orange-600 hover:text-orange-800 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors text-sm"
+                          onClick={() => openPreviewDrawer(s.submission_files)}
+                          title={`ดูไฟล์ (${s.submission_files.length})`}
+                        >
+                          <Eye size={14} />
+                          <span>({s.submission_files.length})</span>
+                        </button>
+                      ) : (
+                        <span className="text-gray-400 text-sm">-</span>
+                      )}
+                    </td>
+                    {showActionsColumn && (
+                      <td className="px-3 py-3">
+                        {!["Certificate"].includes(s.type) ? (
+                          <button
+                            className="flex items-center space-x-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-lg transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => openIndividualReviewModal(s)}
+                            disabled={loadingIndividual || loadingBatch}
+                            title="ตรวจสอบรายการนี้"
+                          >
+                            <Edit size={14} />
+                            <span>ตรวจสอบ</span>
+                          </button>
+                        ) : (
+                          <span className="text-gray-400 text-sm">-</span>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+
+            </table>
+          </div>
+          
+          {/* Pagination */}
+          <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                หน้า {currentPage} จาก {totalPages}
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <button
+                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={
+                    currentPage === 1 || loadingBatch || loadingIndividual
+                  }
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                >
+                  <ChevronLeft size={16} />
+                  <span>ก่อนหน้า</span>
+                </button>
+                
+                <span className="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg">
+                  {currentPage}
+                </span>
+                
+                <button
+                  className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  disabled={
+                    currentPage === totalPages ||
+                    loadingBatch ||
+                    loadingIndividual
+                  }
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                >
+                  <span>ถัดไป</span>
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
+      
       {isPreviewDrawerOpen && renderPreviewDrawer()}
       {showRejectPopup && renderBatchRejectPopup()}
       {reviewingSubmission && renderIndividualReviewPopup()}

@@ -14,7 +14,7 @@ exports.getUserApprovedHours = async (req, res) => {
       };
     }
 
-    // รวมชั่วโมงจาก linked_volunteer
+    // รวมชั่วโมงจาก linked_volunteer (คำนวณจากรายการแต่ละโครงการ)
     const volunteerData = await prisma.linked_volunteer.findMany({
       where: { user_id: user.username },
     });
