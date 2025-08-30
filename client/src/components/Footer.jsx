@@ -22,7 +22,7 @@ const Footer = () => {
       {/* ข้อความชิดขวา (ซ่อนในมือถือ) */}
       <div className="text-right hidden md:block">
         <p>
-          Powered by <a href='https://instagram.com/badee.md' target='_blank'>Badeesorn</a>
+          Build with ❤️ by <a href='https://instagram.com/badee.md' target='_blank'>Badeesorn</a>
         </p>
       </div>
     </footer>

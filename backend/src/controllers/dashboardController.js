@@ -418,3 +418,205 @@ exports.getAcademicYears = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+// Get volunteer activity overview
+exports.getVolunteerOverview = async (req, res) => {
+  try {
+    const requester = req.user;
+    if (requester.role !== "admin") {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const { academicYear, viewMode = 'count' } = req.query;
+
+    // Build where clause for academic year filter
+    const whereClause = academicYear ? {
+      academic_years: {
+        year_name: academicYear
+      }
+    } : {};
+
+    // 1. Activity Sources (MOD LINK vs System)
+    const activitySources = await getActivitySources(whereClause, viewMode);
+    
+    // 2. Activity Types
+    const activityTypes = await getActivityTypes(whereClause, viewMode);
+
+    res.status(200).json({
+      activitySources,
+      activityTypes
+    });
+
+  } catch (err) {
+    console.error("Volunteer overview error:", err.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// Get activity sources statistics
+async function getActivitySources(whereClause, viewMode) {
+  // From MOD LINK (linked_volunteer table)
+  // Filter by year if academicYear is provided
+  const modLinkWhere = {};
+  if (whereClause.academic_years) {
+    modLinkWhere.year = whereClause.academic_years.year_name;
+  }
+  
+  if (viewMode === 'count') {
+    // For project count mode: Group by project_name, hours, and year to count unique activities
+    const modLinkActivities = await prisma.linked_volunteer.groupBy({
+      by: ['project_name', 'hours', 'year'],
+      where: {
+        hours: { gt: 0 }, // Only activities with hours > 0
+        ...modLinkWhere
+      },
+      _count: {
+        id: true
+      }
+    });
+    
+    const modLinkCount = modLinkActivities.length; // Count unique combinations
+    const modLinkHours = 0; // Not used in count mode
+    
+    // From System (submissions table)
+    const systemActivities = await prisma.submissions.findMany({
+      where: {
+        status: 'approved', // Only approved submissions
+        ...whereClause
+      },
+      select: {
+        hours: true
+      }
+    });
+
+    const systemCount = systemActivities.length;
+    const systemHours = systemActivities.reduce((sum, activity) => sum + (activity.hours || 0), 0);
+
+    return {
+      'จาก MOD LINK': modLinkCount,
+      'จากระบบ': systemCount
+    };
+  } else {
+    // For hours mode: Get all records and sum hours
+    const modLinkActivities = await prisma.linked_volunteer.findMany({
+      where: {
+        hours: { gt: 0 }, // Only activities with hours > 0
+        ...modLinkWhere
+      },
+      select: {
+        hours: true
+      }
+    });
+
+    // From System (submissions table)
+    const systemActivities = await prisma.submissions.findMany({
+      where: {
+        status: 'approved', // Only approved submissions
+        ...whereClause
+      },
+      select: {
+        hours: true
+      }
+    });
+
+    const modLinkHours = modLinkActivities.reduce((sum, activity) => sum + (activity.hours || 0), 0);
+    const systemHours = systemActivities.reduce((sum, activity) => sum + (activity.hours || 0), 0);
+
+    return {
+      'จาก MOD LINK': modLinkHours,
+      'จากระบบ': systemHours
+    };
+  }
+}
+
+// Get activity types statistics
+async function getActivityTypes(whereClause, viewMode) {
+  // Activity type mapping for submissions
+  const SUBMISSION_TYPE_MAPPING = {
+    'BloodDonate': 'กิจกรรมบริจาคโลหิต',
+    'religious': 'กิจกรรมจิตอาสาพัฒนาชุมชนและสังคมภายนอกมหาวิทยาลัยฯ',
+    'social-development': 'กิจกรรมจิตอาสาพัฒนาชุมชนและสังคมภายนอกมหาวิทยาลัยฯ'
+  };
+
+  // Default type for other submissions
+  const DEFAULT_SUBMISSION_TYPE = 'กิจกรรมที่จัดโดยทางกองทุนกู้ยืมฯ (กยศ.)';
+
+  // Get from linked_volunteer
+  // Filter by year if academicYear is provided
+  const modLinkWhere = {};
+  if (whereClause.academic_years) {
+    modLinkWhere.year = whereClause.academic_years.year_name;
+  }
+  
+  const linkedVolunteerData = await prisma.linked_volunteer.findMany({
+    where: {
+      hours: { gt: 0 },
+      ...modLinkWhere
+    },
+    select: {
+      activity_type: true,
+      hours: true
+    }
+  });
+
+  // Get from submissions
+  const submissionsData = await prisma.submissions.findMany({
+    where: {
+      status: 'approved',
+      ...whereClause
+    },
+    select: {
+      type: true,
+      hours: true
+    }
+  });
+
+  // Process activity types
+  const activityTypeStats = {};
+
+  // Process linked_volunteer data
+  for (const activity of linkedVolunteerData) {
+    if (activity.activity_type) {
+      // Split by comma if multiple types
+      const types = activity.activity_type.split(',').map(type => type.trim());
+      
+      for (const type of types) {
+        // Replace "-" with "ไม่มีหมวดหมู่"
+        const displayType = type === '-' ? 'ไม่มีหมวดหมู่' : type;
+        
+        if (!activityTypeStats[displayType]) {
+          activityTypeStats[displayType] = { count: 0, hours: 0 };
+        }
+        activityTypeStats[displayType].count += 1;
+        activityTypeStats[displayType].hours += activity.hours || 0;
+      }
+    } else {
+      // If no activity_type, treat as "ไม่มีหมวดหมู่"
+      const displayType = 'ไม่มีหมวดหมู่';
+      if (!activityTypeStats[displayType]) {
+        activityTypeStats[displayType] = { count: 0, hours: 0 };
+      }
+      activityTypeStats[displayType].count += 1;
+      activityTypeStats[displayType].hours += activity.hours || 0;
+    }
+  }
+
+  // Process submissions data
+  for (const submission of submissionsData) {
+    const mappedType = SUBMISSION_TYPE_MAPPING[submission.type] || DEFAULT_SUBMISSION_TYPE;
+    
+    if (!activityTypeStats[mappedType]) {
+      activityTypeStats[mappedType] = { count: 0, hours: 0 };
+    }
+    activityTypeStats[mappedType].count += 1;
+    activityTypeStats[mappedType].hours += submission.hours || 0;
+  }
+
+  // Convert to the format expected by frontend
+  const result = {};
+  for (const [type, data] of Object.entries(activityTypeStats)) {
+    result[type] = viewMode === 'hours' ? data.hours : data.count;
+  }
+
+  return result;
+}

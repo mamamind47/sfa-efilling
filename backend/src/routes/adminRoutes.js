@@ -13,6 +13,7 @@ const {
 const {
   getDashboardStats,
   getAcademicYears,
+  getVolunteerOverview,
 } = require("../controllers/dashboardController");
 
 const {
@@ -41,6 +42,7 @@ router.post("/update-scholarship", updateScholarshipStatus);
 // Dashboard
 router.get("/dashboard/stats", getDashboardStats);
 router.get("/dashboard/academic-years", getAcademicYears);
+router.get("/dashboard/volunteer-overview", getVolunteerOverview);
 
 // การจัดการผู้ใช้
 router.post("/users/add", addSingleUser);

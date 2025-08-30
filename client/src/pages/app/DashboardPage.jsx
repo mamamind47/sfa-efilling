@@ -76,10 +76,12 @@ const CHART_COLORS = [
 
 function DashboardPage() {
   const [dashboardData, setDashboardData] = useState(null);
+  const [volunteerOverview, setVolunteerOverview] = useState(null);
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedYear, setSelectedYear] = useState('');
   const [loading, setLoading] = useState(false);
   const [viewMode, setViewMode] = useState('count'); // 'count' or 'hours'
+  const [volunteerViewMode, setVolunteerViewMode] = useState('count'); // 'count' or 'hours' for volunteer overview
   const [studentFilter, setStudentFilter] = useState('current'); // 'current' or 'all'
   const [timelineFilter, setTimelineFilter] = useState('1year'); // '7days', '1month', '3months', '1year'
 
@@ -124,6 +126,19 @@ function DashboardPage() {
     }
   };
 
+  const fetchVolunteerOverview = async () => {
+    try {
+      const params = { 
+        ...(selectedYear && { academicYear: selectedYear }),
+        viewMode: volunteerViewMode
+      };
+      const res = await apiClient.get('/admin/dashboard/volunteer-overview', { params });
+      setVolunteerOverview(res.data);
+    } catch (err) {
+      console.error('Error fetching volunteer overview:', err);
+    }
+  };
+
   useEffect(() => {
     fetchAcademicYears();
   }, []);
@@ -131,10 +146,17 @@ function DashboardPage() {
   useEffect(() => {
     if (selectedYear) {
       fetchDashboardData();
+      fetchVolunteerOverview();
     }
   }, [selectedYear, timelineFilter]);
 
-  if (loading || !dashboardData) {
+  useEffect(() => {
+    if (selectedYear) {
+      fetchVolunteerOverview();
+    }
+  }, [volunteerViewMode]);
+
+  if (loading || !dashboardData || !volunteerOverview) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
@@ -603,6 +625,129 @@ function DashboardPage() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Block 4: ภาพรวมกิจกรรมจิตอาสาของนักศึกษา */}
+        {(
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900">
+                ภาพรวมกิจกรรมจิตอาสาของนักศึกษา
+              </h2>
+              <div className="flex bg-gray-100 rounded p-1">
+                <button
+                  className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                    volunteerViewMode === 'count' 
+                      ? 'bg-orange-500 text-white' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                  }`}
+                  onClick={() => setVolunteerViewMode('count')}
+                >
+                  จำนวนกิจกรรม
+                </button>
+                <button
+                  className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+                    volunteerViewMode === 'hours' 
+                      ? 'bg-orange-500 text-white' 
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-200'
+                  }`}
+                  onClick={() => setVolunteerViewMode('hours')}
+                >
+                  จำนวนชั่วโมง
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Activity Sources */}
+              <div className="space-y-3">
+                <h3 className="text-base font-medium text-gray-700">แหล่งที่มาของกิจกรรม</h3>
+                <div className="space-y-4">
+                  {Object.entries(volunteerOverview.activitySources || {})
+                    .sort(([,a], [,b]) => b - a)
+                    .map(([source, count], index) => {
+                      const total = Object.values(volunteerOverview.activitySources || {}).reduce((sum, c) => sum + c, 0);
+                      const percentage = total > 0 ? (count / total * 100) : 0;
+                      
+                      return (
+                        <div key={source} className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-700">{source}</span>
+                            <span className="text-sm font-semibold text-gray-900">
+                              {count.toLocaleString()} {volunteerViewMode === 'hours' ? 'ชั่วโมง' : 'กิจกรรม'}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500 text-right">
+                            {percentage.toFixed(1)}%
+                          </div>
+                        </div>
+                      );
+                    })
+                  }
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">รวมทั้งหมด</span>
+                      <span className="text-base font-bold text-green-600">
+                        {Object.values(volunteerOverview.activitySources || {}).reduce((sum, count) => sum + count, 0).toLocaleString()} 
+                        {volunteerViewMode === 'hours' ? ' ชั่วโมง' : ' กิจกรรม'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity Types */}
+              <div className="space-y-3">
+                <h3 className="text-base font-medium text-gray-700">ประเภทกิจกรรมจิตอาสา</h3>
+                <div className="space-y-4">
+                  {Object.entries(volunteerOverview.activityTypes || {})
+                    .sort(([,a], [,b]) => b - a)
+                    .map(([type, count], index) => {
+                      const total = Object.values(volunteerOverview.activityTypes || {}).reduce((sum, c) => sum + c, 0);
+                      const percentage = total > 0 ? (count / total * 100) : 0;
+                      
+                      return (
+                        <div key={type} className="space-y-2">
+                          <div className="flex justify-between items-start">
+                            <span className="text-sm font-medium text-gray-700 leading-tight flex-1 pr-4">
+                              {type}
+                            </span>
+                            <span className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                              {count.toLocaleString()} {volunteerViewMode === 'hours' ? 'ชั่วโมง' : 'กิจกรรม'}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-purple-500 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <div className="text-xs text-gray-500 text-right">
+                            {percentage.toFixed(1)}%
+                          </div>
+                        </div>
+                      );
+                    })
+                  }
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700">รวมทั้งหมด</span>
+                      <span className="text-base font-bold text-purple-600">
+                        {Object.values(volunteerOverview.activityTypes || {}).reduce((sum, count) => sum + count, 0).toLocaleString()} 
+                        {volunteerViewMode === 'hours' ? ' ชั่วโมง' : ' กิจกรรม'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
