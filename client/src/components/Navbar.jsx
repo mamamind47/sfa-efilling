@@ -21,6 +21,7 @@ import {
   Mail,
 } from "lucide-react";
 import logo from "../assets/SL_e-Filling.png";
+import NotificationBell from "./NotificationBell";
 
 
 // --- ข้อมูลเมนู ---
@@ -257,8 +258,13 @@ const NavBar = () => {
         </div>
       </div>
 
-      {/* navbar-end: Logout */}
-      <div className="navbar-end">
+      {/* navbar-end: Notifications & Logout */}
+      <div className="navbar-end flex items-center space-x-2">
+        {/* Notification Bell - Only for students */}
+        {role === 'student' && (
+          <NotificationBell />
+        )}
+        
         <button
           onClick={logout}
           className="btn btn-ghost btn-sm hidden md:inline-flex items-center space-x-2 text-error hover:bg-base-200 text-base rounded-md group"

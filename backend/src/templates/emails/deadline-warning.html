@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แจ้งเตือน: ใกล้หมดเขตยื่นเอกสาร</title>
+    <style>
+        body {
+            font-family: 'Sarabun', 'Sukhumvit Set', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa !important;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff !important;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%) !important;
+            background-color: #ff6b6b !important;
+            color: #ffffff !important;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffffff !important;
+        }
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            color: #ffffff !important;
+        }
+        .content {
+            padding: 30px;
+        }
+        .warning-box {
+            background-color: #fff3cd !important;
+            border: 1px solid #ffeaa7 !important;
+            border-left: 4px solid #ff6b6b !important;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .warning-box h2 {
+            color: #d63031 !important;
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .stats-container {
+            background-color: #f8f9fa !important;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .stats-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            color: #d63031 !important;
+        }
+        .stats-label {
+            color: #666666 !important;
+        }
+        .stats-value {
+            font-weight: bold;
+            color: #333333 !important;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ffa500 100%) !important;
+            background-color: #ff6b6b !important;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .btn:hover {
+            background-color: #e55353 !important;
+        }
+        .tips {
+            background-color: #e3f2fd !important;
+            border-left: 4px solid #2196f3 !important;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .tips h3 {
+            color: #1976d2 !important;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .tips ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .tips li {
+            margin: 5px 0;
+            color: #333333 !important;
+        }
+        .footer {
+            background-color: #f8f9fa !important;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666 !important;
+            border-top: 1px solid #e0e0e0;
+        }
+        .contact-info {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #fff !important;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>แจ้งเตือน: ใกล้หมดเขตยื่นเอกสาร</h1>
+        </div>
+        
+        <div class="content">
+            <p>เรียน คุณ<strong>{{userName}}</strong></p>
+            
+            <div class="warning-box">
+                <h2>ใกล้หมดเขตยื่นเอกสารแล้ว!</h2>
+                <p>เหลือเวลาในการยื่นเอกสารกิจกรรมจิตอาสาอีกเพียง <strong style="color: #d63031 !important;">{{daysLeft}} วัน</strong></p>
+                <p>กำหนดสุดท้าย: <strong>{{deadline}}</strong></p>
+            </div>
+
+            <div class="stats-container">
+                <h3 style="margin-top: 0; color: #333 !important;">สถานะชั่วโมงจิตอาสาปัจจุบัน</h3>
+                <div class="stats-row">
+                    <span class="stats-label">ชั่วโมงที่สะสมได้แล้ว:</span>
+                    <span class="stats-value">{{currentHours}} ชั่วโมง</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">จำนวนที่กำหนดให้นักศึกษาต้องทำ:</span>
+                    <span class="stats-value">36 ชั่วโมง</span>
+                </div>
+                <div class="stats-row">
+                    <span class="stats-label">ยังต้องสะสมอีก:</span>
+                    <span class="stats-value">{{remainingHours}} ชั่วโมง</span>
+                </div>
+            </div>
+
+            <div style="text-align: center;">
+                <a href="{{systemUrl}}/app/submit/select" class="btn">ยื่นเอกสารทันที</a>
+            </div>
+
+            <div class="contact-info">
+                <p><strong> ติดต่อสอบถาม:</strong></p>
+                <p>กลุ่มงานช่วยเหลือทางการเงินแก่นักศึกษา<br>
+                โทร. 02-470-9982</p>
+            </div>
+
+            <p style="margin-top: 30px;">หากท่านยื่นเอกสารครบถ้วนแล้ว กรุณาเพิกเฉยต่ออีเมลนี้</p>
+            
+            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+            <p style="font-size: 12px; color: #666;">
+                อีเมลนี้ส่งโดยอัตโนมัติ กรุณาอย่าตอบกลับ<br>
+                ระบบยื่นเอกสารนักศึกษาทุน กยศ. มจธ. | Volunteer Student Loan e-Filling (VSF)
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>© 2024 King Mongkut's University of Technology Thonburi</p>
+            <p>กลุ่มงานช่วยเหลือทางการเงินแก่นักศึกษา</p>
+        </div>
+    </div>
+</body>
+</html>

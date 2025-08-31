@@ -108,4 +108,16 @@ router.get("/academic-years", async (req, res) => {
 
 // SSE endpoint for bulk update progress (moved to sseRoutes.js to avoid auth middleware)
 
+// Manual trigger for deadline warnings (testing only)
+router.post("/test-deadline-warnings", async (req, res) => {
+  try {
+    const cronService = require("../services/cronService");
+    await cronService.triggerDeadlineCheck();
+    res.json({ message: "Deadline warning check triggered successfully" });
+  } catch (error) {
+    console.error('Error triggering deadline check:', error);
+    res.status(500).json({ error: 'Failed to trigger deadline check' });
+  }
+});
+
 module.exports = router;

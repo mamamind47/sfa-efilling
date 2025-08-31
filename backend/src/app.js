@@ -16,6 +16,8 @@ const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const sseRoutes = require("./routes/sseRoutes");
 const emailRoutes = require("./routes/emailRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const cronService = require("./services/cronService");
 
 
 const app = express();
@@ -54,6 +56,9 @@ app.use("/api/link", linkRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/email", emailRoutes);
+app.use("/api/notifications", notificationRoutes);
 
+// Start cron jobs
+cronService.scheduleDeadlineWarnings();
 
 module.exports = app;

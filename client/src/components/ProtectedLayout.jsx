@@ -21,6 +21,7 @@ import {
   UserPen,
   BarChart3,
   Mail,
+  Bell,
 } from "lucide-react";
 
 import ManageAcademicYearPage from "../pages/app/ManageAcademicYearPage.jsx";
@@ -43,6 +44,7 @@ import SubmitReligiousMaintainPage from "../pages/app/SubmitReligiousMaintainPag
 import SubmitSocialDevelopmentPage from "../pages/app/SubmitSocialDevelopmentPage.jsx";
 import DashboardPage from "../pages/app/DashboardPage.jsx";
 import SendEmailPage from "../pages/app/SendEmailPage.jsx";
+import NotificationsPage from "../pages/app/NotificationsPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -66,6 +68,12 @@ const menuItemsData = (role) =>
       path: "/app/submission-status",
       icon: Hourglass,
       text: "ตรวจสอบสถานะ",
+      roles: ["student"],
+    },
+    {
+      path: "/app/notifications",
+      icon: Bell,
+      text: "การแจ้งเตือน",
       roles: ["student"],
     },
     {
@@ -211,6 +219,10 @@ function ProtectedLayout() {
                 <Route
                   path="submission-status"
                   element={<UserSubmissionStatusPage />}
+                />
+                <Route
+                  path="notifications"
+                  element={<NotificationsPage />}
                 />
               </>
             )}

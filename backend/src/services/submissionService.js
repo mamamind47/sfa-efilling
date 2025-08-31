@@ -1,5 +1,6 @@
 const prisma = require("../config/database");
 const emailService = require("./emailService");
+const notificationService = require("./notificationService");
 const path = require("path");
 const axios = require("axios");
 const sharp = require("sharp");
@@ -443,6 +444,30 @@ async function reviewSubmission(submissionId, reviewData, adminId) {
     // Send email notification
     await sendSubmissionEmail(updatedSubmission, status, rejectionReason, adminId, originalHours);
 
+    // Create web notification
+    try {
+      const activityName = getSubmissionTypeDisplayName(updatedSubmission.type);
+      
+      if (status === 'approved') {
+        await notificationService.createApprovalNotification(
+          updatedSubmission.user_id, 
+          submissionId, 
+          hours,
+          activityName
+        );
+      } else if (status === 'rejected') {
+        await notificationService.createRejectionNotification(
+          updatedSubmission.user_id, 
+          submissionId, 
+          rejectionReason,
+          activityName
+        );
+      }
+    } catch (notificationError) {
+      console.error('Error creating notification:', notificationError);
+      // Don't throw error here - notification failure shouldn't break the review process
+    }
+
     return updatedSubmission;
   } catch (error) {
     console.error('Error reviewing submission:', error);
@@ -756,6 +781,19 @@ async function submitSubmission(submissionData, files) {
           // Send approval email
           await sendSubmissionEmail(updatedSubmission, 'approved', null, null);
 
+          // Create web notification for auto-approval
+          try {
+            const activityName = getSubmissionTypeDisplayName(submission.type);
+            await notificationService.createApprovalNotification(
+              updatedSubmission.user_id, 
+              submission.submission_id, 
+              certType.hours,
+              activityName
+            );
+          } catch (notificationError) {
+            console.error('Error creating auto-approval notification:', notificationError);
+          }
+
           autoApproved = true;
         } else {
           // Auto reject with reasons
@@ -779,6 +817,19 @@ async function submitSubmission(submissionData, files) {
 
           // Send rejection email with original hours
           await sendSubmissionEmail(updatedSubmission, 'rejected', rejectionReasonText, null, submission.hours);
+
+          // Create web notification for auto-rejection
+          try {
+            const activityName = getSubmissionTypeDisplayName(submission.type);
+            await notificationService.createRejectionNotification(
+              updatedSubmission.user_id, 
+              submission.submission_id, 
+              rejectionReasonText,
+              activityName
+            );
+          } catch (notificationError) {
+            console.error('Error creating auto-rejection notification:', notificationError);
+          }
 
           autoApproved = true; // Still mark as handled
         }
