@@ -158,15 +158,16 @@ function ModalUploadConfirm({
                         onLoad={() => URL.revokeObjectURL(url)} // Revoke หลังโหลดเสร็จ (อาจไม่ครอบคลุมทุกกรณี)
                       />
                     ) : file.type === "application/pdf" ? (
-                      <div className="text-center text-sm text-gray-500 py-4">
-                        (Preview สำหรับ PDF ไม่แสดงในหน้านี้)
-                      </div>
-                    ) : /* <iframe // iframe อาจมีปัญหาเรื่อง performance/security/rendering
+                      <iframe
                         src={url}
                         title={file.name}
-                        className="w-full h-48 rounded border mb-2" // ลดขนาด preview
-                      /> */
-                    null}
+                        className="w-full h-48 rounded border mb-2"
+                      />
+                    ) : (
+                      <div className="text-center text-sm text-gray-500 py-4">
+                        (ไม่สามารถแสดงตัวอย่างไฟล์ประเภทนี้ได้)
+                      </div>
+                    )}
 
                     {/* File Info & Remove Button */}
                     <div className="flex justify-between items-center mt-1">

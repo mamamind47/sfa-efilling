@@ -1,6 +1,6 @@
 // src/components/NavBar.jsx
 import React from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import {
   Home,

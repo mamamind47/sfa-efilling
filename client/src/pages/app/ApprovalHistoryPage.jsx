@@ -136,25 +136,11 @@ function ApprovalHistoryPage() {
     }
   }, [fetchData, academicYearFilter]);
 
-  const renderSkeletonRows = () =>
-    Array.from({ length: 10 }).map((_, idx) => (
-      <tr key={idx} className="animate-pulse">
-        <td colSpan={10} className="p-4">
-          <div className="h-4 bg-gray-200 rounded w-full"></div>
-        </td>
-      </tr>
-    ));
-
   const toggleRowExpansion = (submissionId) => {
     setExpandedRows(prev => ({
       ...prev,
       [submissionId]: !prev[submissionId]
     }));
-  };
-
-  const truncateText = (text, limit = 50) => {
-    if (!text) return "-";
-    return text.length > limit ? text.substring(0, limit) + "..." : text;
   };
 
   // Preview Drawer functions
@@ -462,7 +448,7 @@ function ApprovalHistoryPage() {
                         )}
                         <td className="p-3 text-center">
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {s.approved_hours || s.hours || s.requested_hours || "-"}
+                            {s.hours || s.hours_requested || "-"}
                           </span>
                         </td>
                         <td className="p-3 whitespace-nowrap text-sm">

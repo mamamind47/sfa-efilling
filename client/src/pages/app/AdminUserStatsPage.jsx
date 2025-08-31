@@ -36,7 +36,7 @@ function AdminUserStatsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
-  const [limit, setLimit] = useState(50);
+  const [limit] = useState(50);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 500);
   const [selectedFaculty, setSelectedFaculty] = useState("all");

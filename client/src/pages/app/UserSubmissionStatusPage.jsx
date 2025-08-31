@@ -2,15 +2,24 @@
 import React, {
   useEffect,
   useState,
-  useCallback,
   useMemo,
-  useRef,
 } from "react";
 import apiClient from "../../api/axiosConfig";
-import { Eye, X, Loader2, AlertCircle } from "lucide-react";
+import { 
+  Eye, 
+  X, 
+  Loader2, 
+  AlertCircle, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  FileText,
+  Calendar
+} from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import buddhistEra from "dayjs/plugin/buddhistEra";
+import { getSubmissionStatusConfig } from "../../utils/submissionUtils";
 
 dayjs.locale("th");
 dayjs.extend(buddhistEra);
@@ -127,7 +136,7 @@ function StatusDetailPopup({ submission, onClose }) {
           <div className="flex justify-between">
             {" "}
             <strong className="text-gray-500">ประเภท:</strong>{" "}
-            <span>{submission.type}</span>{" "}
+            <span>{submission.type_display_name || submission.type}</span>{" "}
           </div>
           {submission.certificate_type && (
             <div className="flex justify-between">
@@ -277,22 +286,6 @@ function UserSubmissionStatusPage() {
     );
   }, [submissions, selectedAcademicYearId]);
 
-  const getDisplaySubmissionType = (type) => {
-    switch (type) {
-      case "NSF":
-        return "ออมเงิน กอช.";
-      case "BloodDonate":
-        return "บริจาคโลหิต";
-      case "Certificate":
-        return "e-Learning";
-      case "religious":
-        return "กิจกรรมทำนุบำรุงศาสนสถาน";
-      case "social-development":
-        return "กิจกรรมทำนุบำรุงและพัฒนาโรงเรียนและชุมชน";
-      default:
-        return type;
-    }
-  };
   const getStatusBadge = (sub) => {
     const status = sub.status_logs?.[0]?.status || sub.status || "submitted";
     switch (status) {
@@ -325,223 +318,289 @@ function UserSubmissionStatusPage() {
 
   // --- Render Page ---
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 bg-gray-50 min-h-screen">
-      <h1 className="text-xl md:text-2xl font-bold text-gray-800">
-        สถานะคำร้องของฉัน
-      </h1>
-      {!isLoading && currentYearName && (
-        <p className="text-sm text-gray-600 -mt-4 md:-mt-5">
-          ปีการศึกษา: {currentYearName}
-        </p>
-      )}
-      {!isLoading && !currentYearName && submissions.length > 0 && (
-        <p className="text-sm text-gray-600 -mt-4 md:-mt-5">
-          กรุณาเลือกปีการศึกษา
-        </p>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4">
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="bg-white rounded-lg shadow border border-blue-100">
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white p-4 rounded-t-lg">
+            <div className="flex items-center gap-3">
+              <FileText className="w-6 h-6" />
+              <div>
+                <h1 className="text-xl font-bold">
+                  สถานะคำร้องของฉัน
+                </h1>
+                <p className="text-blue-100 mt-1 text-sm">
+                  ตรวจสอบสถานะและความคืบหน้าการยื่นคำร้องทั้งหมด
+                </p>
+              </div>
+            </div>
+          </div>
 
-      {/* Academic Year Filter */}
-      {availableSubmissionYears.length > 0 && (
-        <div className="form-control w-full sm:w-auto sm:max-w-xs">
-          <label className="label py-1">
-            <span className="label-text text-sm">กรองตามปีการศึกษา</span>
-          </label>
-          <select
-            className="select select-bordered select-sm md:select-md"
-            value={selectedAcademicYearId}
-            onChange={(e) => setSelectedAcademicYearId(e.target.value)}
-            disabled={isLoading}
-          >
-            {availableSubmissionYears.map((ay) => (
-              <option key={ay.id} value={ay.id}>
-                {" "}
-                {ay.name}{" "}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+          <div className="p-4">
+            {!isLoading && currentYearName && (
+              <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                <Calendar className="w-4 h-4" />
+                <span>ปีการศึกษา: <span className="font-medium">{currentYearName}</span></span>
+              </div>
+            )}
+            {!isLoading && !currentYearName && submissions.length > 0 && (
+              <p className="text-sm text-gray-600 mb-4">
+                กรุณาเลือกปีการศึกษา
+              </p>
+            )}
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="text-center py-10">
-          <Loader2 className="animate-spin inline-block w-8 h-8 text-blue-500" />
-          <p className="mt-2 text-gray-600">กำลังโหลด...</p>
+            {/* Academic Year Filter */}
+            {availableSubmissionYears.length > 0 && (
+              <div className="space-y-1">
+                <label className="flex items-center gap-1 text-xs font-medium text-gray-700">
+                  <Calendar className="w-3 h-3" />
+                  เลือกปีการศึกษา
+                </label>
+                <select
+                  className="w-full max-w-xs px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  value={selectedAcademicYearId}
+                  onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                  disabled={isLoading}
+                >
+                  {availableSubmissionYears.map((ay) => (
+                    <option key={ay.id} value={ay.id}>
+                      {ay.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      {/* Error State */}
-      {error && !isLoading && (
-        <div role="alert" className="alert alert-error text-white shadow-md">
-          <AlertCircle />
-          <span>{error}</span>
-        </div>
-      )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="bg-white rounded-lg shadow p-8">
+            <div className="text-center">
+              <Loader2 className="animate-spin inline-block w-8 h-8 text-blue-500 mb-4" />
+              <p className="text-gray-600">กำลังโหลดข้อมูล...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !isLoading && (
+          <div className="bg-white rounded-lg shadow border border-red-200 p-4">
+            <div className="flex items-center gap-3 text-red-800">
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-medium">{error}</span>
+            </div>
+          </div>
+        )}
 
       {/* --- Data Display Area --- */}
       {!isLoading && !error && (
         <>
-          {/* ================================================== */}
-          {/* Card Layout (Mobile / Small Screens)      */}
-          {/* ================================================== */}
-          <div className="space-y-3 md:hidden">
+          {/* Card Layout (Mobile / Small Screens) */}
+          <div className="space-y-4 md:hidden">
             {/* Message if no data for selected year or no submissions at all */}
             {selectedAcademicYearId &&
               filteredSubmissions.length === 0 &&
               !isLoading && (
-                <div className="text-center p-6 text-gray-500 bg-white rounded-lg shadow">
-                  ไม่พบคำร้องสำหรับปีการศึกษา {currentYearName || ""}
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">ไม่พบคำร้องสำหรับปีการศึกษา</p>
+                  <p className="text-gray-400 text-sm">{currentYearName || ""}</p>
                 </div>
               )}
             {!selectedAcademicYearId &&
               submissions.length === 0 &&
               !isLoading && (
-                <div className="text-center p-6 text-gray-500 bg-white rounded-lg shadow">
-                  คุณยังไม่มีการยื่นคำร้อง
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 font-medium">คุณยังไม่มีการยื่นคำร้อง</p>
+                  <p className="text-gray-400 text-sm">เมื่อยื่นคำร้องแล้ว จะแสดงสถานะที่นี่</p>
                 </div>
               )}
 
             {/* Render Cards if data exists for the selected year */}
-            {filteredSubmissions.map((sub) => (
-              <div
-                key={sub.submission_id + "-card"}
-                className="bg-white p-4 rounded-lg shadow border border-gray-200"
-              >
-                {/* Card Header: Type and Status */}
-                <div className="flex justify-between items-center mb-2 pb-2 border-b">
-                  <span className="font-semibold text-sm text-gray-800">
-                    {getDisplaySubmissionType(sub.type)}
-                  </span>
-                  {getStatusBadge(sub)}
-                </div>
-                {/* Card Body */}
-                <div className="text-sm text-gray-700 mb-1 truncate font-medium">
-                  {/* Display Topic or other main identifier */}
-                  {sub.certificate_type
-                    ? `${sub.certificate_type.certificate_name}`
-                    : sub.type === "BloodDonate"
-                    ? "บริจาคโลหิต"
-                    : "-"}
-                </div>
-                {sub.certificate_type && (
-                  <div className="text-xs text-gray-500 mb-1">
-                    ({sub.certificate_type.certificate_code})
+            {filteredSubmissions.map((sub) => {
+              const status = sub.status_logs?.[0]?.status || sub.status || "submitted";
+              return (
+                <div
+                  key={sub.submission_id + "-card"}
+                  className="bg-white p-4 rounded-lg shadow border border-gray-200 hover:shadow-md transition-shadow"
+                >
+                  {/* Card Header: Type and Status */}
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      {status === "approved" ? (
+                        <CheckCircle className="w-4 h-4 text-green-500" />
+                      ) : status === "rejected" ? (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-yellow-500" />
+                      )}
+                      <span className="font-semibold text-sm text-gray-800">
+                        {sub.type_display_name || sub.type}
+                      </span>
+                    </div>
+                    {getStatusBadge(sub)}
                   </div>
-                )}
-                <div className="text-xs text-gray-500 mb-3">
-                  <span>
-                    ส่งเมื่อ: {dayjs(sub.created_at).format("D MMM BBBB")}
-                  </span>
-                  {/* Optionally show hours if relevant */}
-                  {sub.hours !== null && sub.hours !== undefined && (
-                    <span className="mx-2">|</span>
-                  )}
-                  {sub.hours !== null && sub.hours !== undefined && (
-                    <span>ชม.: {sub.hours}</span>
-                  )}
+                  {/* Card Body */}
+                  <div className="space-y-2 mb-4">
+                    <div className="text-sm text-gray-700 font-medium">
+                      {sub.certificate_type
+                        ? sub.certificate_type.certificate_name
+                        : sub.type_display_name || sub.type}
+                    </div>
+                    {sub.certificate_type && (
+                      <div className="text-xs text-gray-500">
+                        รหัส: {sub.certificate_type.certificate_code}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{dayjs(sub.created_at).format("D MMM BBBB")}</span>
+                      </div>
+                      {sub.hours !== null && sub.hours !== undefined && (
+                        <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                          {sub.hours} ชั่วโมง
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Card Footer: Action Button */}
+                  <div className="pt-3 border-t border-gray-100">
+                    <button
+                      className="w-full bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 px-3 rounded-md text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                      onClick={() => setStatusPopupDetail(sub)}
+                      title="ดูรายละเอียดสถานะ"
+                    >
+                      <Eye size={14} />
+                      ดูรายละเอียด
+                    </button>
+                  </div>
                 </div>
-                {/* Card Footer: Action Button */}
-                <div className="text-right mt-2">
-                  <button
-                    className="btn btn-xs btn-outline btn-info" // Use outline button for less emphasis
-                    onClick={() => setStatusPopupDetail(sub)}
-                    title="ดูรายละเอียดสถานะ"
-                  >
-                    <Eye size={14} className="mr-1" /> ดูรายละเอียด
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* ==================================================== */}
-          {/* Table Layout (Medium Screens and Up)        */}
-          {/* ==================================================== */}
-          <div className="hidden md:block bg-white rounded-lg shadow overflow-x-auto">
-            <table className="table w-full text-sm">
-              <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-                <tr>
-                  {/* Adjust widths as needed for desktop */}
-                  <th className="p-3 w-2/12">ประเภท</th>
-                  <th className="p-3 w-4/12">หัวข้อ/รายละเอียด</th>
-                  <th className="p-3 w-1/12 text-center">ชม.</th>
-                  <th className="p-3 w-2/12">วันที่ส่ง</th>
-                  <th className="p-3 w-2/12 text-center">สถานะ</th>
-                  <th className="p-3 w-1/12 text-center"></th> {/* Action */}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {/* Messages for empty states */}
-                {!selectedAcademicYearId &&
-                  submissions.length === 0 &&
-                  !isLoading && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="text-center p-10 text-gray-500"
-                      >
-                        คุณยังไม่มีการยื่นคำร้อง
-                      </td>
-                    </tr>
-                  )}
-                {selectedAcademicYearId &&
-                  filteredSubmissions.length === 0 &&
-                  !isLoading && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        className="text-center p-10 text-gray-500"
-                      >
-                        ไม่พบคำร้องสำหรับปีการศึกษา {currentYearName || ""}
-                      </td>
-                    </tr>
-                  )}
-
-                {/* Render Table Rows */}
-                {filteredSubmissions.map((sub) => (
-                  <tr
-                    key={sub.submission_id + "-row"}
-                    className="hover:bg-gray-50 text-gray-800"
-                  >
-                    <td className="p-3 break-words">
-                      {getDisplaySubmissionType(sub.type)}
-                    </td>
-                    <td className="p-3 break-words">
-                      {sub.certificate_type
-                        ? `${sub.certificate_type.certificate_name} (${sub.certificate_type.certificate_code})`
-                        : "-"}
-                    </td>
-                    <td className="p-3 text-center tabular-nums">
-                      {sub.hours ?? "-"}
-                    </td>
-                    <td className="p-3 whitespace-nowrap">
-                      {dayjs(sub.created_at).format("D MMM BBBB HH:mm")}
-                    </td>
-                    <td className="p-3 text-center">{getStatusBadge(sub)}</td>
-                    <td className="p-3 text-center">
-                      <button
-                        className="btn btn-xs btn-ghost text-blue-600 hover:bg-blue-50"
-                        onClick={() => setStatusPopupDetail(sub)}
-                        title="ดูรายละเอียดสถานะ"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
+          {/* Table Layout (Medium Screens and Up) */}
+          <div className="hidden md:block bg-white rounded-lg shadow overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="text-left p-3 font-medium text-gray-700 text-sm">ประเภท</th>
+                    <th className="text-left p-3 font-medium text-gray-700 text-sm">หัวข้อ/รายละเอียด</th>
+                    <th className="text-center p-3 font-medium text-gray-700 text-sm">ชั่วโมง</th>
+                    <th className="text-left p-3 font-medium text-gray-700 text-sm">วันที่ยื่น</th>
+                    <th className="text-center p-3 font-medium text-gray-700 text-sm">สถานะ</th>
+                    <th className="text-center p-3 font-medium text-gray-700 text-sm">การจัดการ</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {/* Messages for empty states */}
+                  {!selectedAcademicYearId &&
+                    submissions.length === 0 &&
+                    !isLoading && (
+                      <tr>
+                        <td colSpan={6} className="text-center p-10">
+                          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 font-medium">คุณยังไม่มีการยื่นคำร้อง</p>
+                          <p className="text-gray-400 text-sm">เมื่อยื่นคำร้องแล้ว จะแสดงสถานะที่นี่</p>
+                        </td>
+                      </tr>
+                    )}
+                  {selectedAcademicYearId &&
+                    filteredSubmissions.length === 0 &&
+                    !isLoading && (
+                      <tr>
+                        <td colSpan={6} className="text-center p-10">
+                          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                          <p className="text-gray-500 font-medium">ไม่พบคำร้องสำหรับปีการศึกษา</p>
+                          <p className="text-gray-400 text-sm">{currentYearName || ""}</p>
+                        </td>
+                      </tr>
+                    )}
+
+                  {/* Render Table Rows */}
+                  {filteredSubmissions.map((sub) => {
+                    const status = sub.status_logs?.[0]?.status || sub.status || "submitted";
+                    return (
+                      <tr
+                        key={sub.submission_id + "-row"}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        <td className="p-3">
+                          <div className="flex items-center gap-2">
+                            {status === "approved" ? (
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                            ) : status === "rejected" ? (
+                              <XCircle className="w-4 h-4 text-red-500" />
+                            ) : (
+                              <Clock className="w-4 h-4 text-yellow-500" />
+                            )}
+                            <span className="text-gray-800 font-medium">
+                              {sub.type_display_name || sub.type}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-3">
+                          <div>
+                            <div className="text-gray-800 font-medium">
+                              {sub.certificate_type?.certificate_name || "-"}
+                            </div>
+                            {sub.certificate_type && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                รหัส: {sub.certificate_type.certificate_code}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">
+                          {sub.hours ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {sub.hours}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>{dayjs(sub.created_at).format("D MMM BBBB")}</span>
+                          </div>
+                        </td>
+                        <td className="p-3 text-center">{getStatusBadge(sub)}</td>
+                        <td className="p-3 text-center">
+                          <button
+                            className="inline-flex items-center px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                            onClick={() => setStatusPopupDetail(sub)}
+                            title="ดูรายละเอียดสถานะ"
+                          >
+                            <Eye size={14} className="mr-1" />
+                            ดูรายละเอียด
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}
 
-      {/* --- Status Detail Modal --- */}
-      {statusPopupDetail && (
-        <StatusDetailPopup
-          submission={statusPopupDetail}
-          onClose={() => setStatusPopupDetail(null)}
-        />
-      )}
-    </div> // End of main container div
+        {/* --- Status Detail Modal --- */}
+        {statusPopupDetail && (
+          <StatusDetailPopup
+            submission={statusPopupDetail}
+            onClose={() => setStatusPopupDetail(null)}
+          />
+        )}
+      </div>
+    </div>
   );
 }
 

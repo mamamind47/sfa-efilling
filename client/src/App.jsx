@@ -1,5 +1,5 @@
 // src/App.jsx
-import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext.jsx";
 import { Toaster } from "react-hot-toast";

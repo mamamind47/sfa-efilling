@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Users,
   GraduationCap,
@@ -85,7 +85,7 @@ function DashboardPage() {
   const [studentFilter, setStudentFilter] = useState('current'); // 'current' or 'all'
   const [timelineFilter, setTimelineFilter] = useState('1year'); // '7days', '1month', '3months', '1year'
 
-  const fetchAcademicYears = async () => {
+  const fetchAcademicYears = useCallback(async () => {
     try {
       const res = await apiClient.get('/admin/dashboard/academic-years');
       setAcademicYears(res.data);
@@ -95,9 +95,9 @@ function DashboardPage() {
     } catch (err) {
       console.error('Error fetching academic years:', err);
     }
-  };
+  }, [selectedYear]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     try {
       // Separate params for activity stats (with academic year) and timeline (without academic year)
@@ -124,9 +124,9 @@ function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear, timelineFilter]);
 
-  const fetchVolunteerOverview = async () => {
+  const fetchVolunteerOverview = useCallback(async () => {
     try {
       const params = { 
         ...(selectedYear && { academicYear: selectedYear }),
@@ -137,24 +137,24 @@ function DashboardPage() {
     } catch (err) {
       console.error('Error fetching volunteer overview:', err);
     }
-  };
+  }, [selectedYear, volunteerViewMode]);
 
   useEffect(() => {
     fetchAcademicYears();
-  }, []);
+  }, [fetchAcademicYears]);
 
   useEffect(() => {
     if (selectedYear) {
       fetchDashboardData();
       fetchVolunteerOverview();
     }
-  }, [selectedYear, timelineFilter]);
+  }, [selectedYear, timelineFilter, fetchDashboardData, fetchVolunteerOverview]);
 
   useEffect(() => {
     if (selectedYear) {
       fetchVolunteerOverview();
     }
-  }, [volunteerViewMode]);
+  }, [volunteerViewMode, selectedYear, fetchVolunteerOverview]);
 
   if (loading || !dashboardData || !volunteerOverview) {
     return (
@@ -333,7 +333,7 @@ function DashboardPage() {
               <div className="space-y-4">
                 {Object.entries(getFilteredStudentData().byScholarship || {})
                   .sort(([,a], [,b]) => b - a)
-                  .map(([type, count], index) => {
+                  .map(([type, count]) => {
                     const total = Object.values(getFilteredStudentData().byScholarship || {}).reduce((sum, c) => sum + c, 0);
                     const percentage = total > 0 ? (count / total * 100) : 0;
                     
@@ -375,7 +375,7 @@ function DashboardPage() {
                   {Object.entries(getFacultiesData())
                     .sort(([,a], [,b]) => b - a)
                     .slice(0, 8)
-                    .map(([faculty, count], index) => {
+                    .map(([faculty, count]) => {
                       const total = Object.values(getFacultiesData()).reduce((sum, c) => sum + c, 0);
                       const percentage = (count / total * 100);
                       
@@ -464,7 +464,7 @@ function DashboardPage() {
                     
                     return activityChartData
                       .sort((a, b) => (b['อนุมัติแล้ว'] || 0) - (a['อนุมัติแล้ว'] || 0))
-                      .map((item, index) => {
+                      .map((item) => {
                         const approvedValue = item['อนุมัติแล้ว'] || 0;
                         const percentage = totalApproved > 0 ? (approvedValue / totalApproved * 100) : 0;
                       
@@ -664,7 +664,7 @@ function DashboardPage() {
                 <div className="space-y-4">
                   {Object.entries(volunteerOverview.activitySources || {})
                     .sort(([,a], [,b]) => b - a)
-                    .map(([source, count], index) => {
+                    .map(([source, count]) => {
                       const total = Object.values(volunteerOverview.activitySources || {}).reduce((sum, c) => sum + c, 0);
                       const percentage = total > 0 ? (count / total * 100) : 0;
                       
@@ -707,7 +707,7 @@ function DashboardPage() {
                 <div className="space-y-4">
                   {Object.entries(volunteerOverview.activityTypes || {})
                     .sort(([,a], [,b]) => b - a)
-                    .map(([type, count], index) => {
+                    .map(([type, count]) => {
                       const total = Object.values(volunteerOverview.activityTypes || {}).reduce((sum, c) => sum + c, 0);
                       const percentage = total > 0 ? (count / total * 100) : 0;
                       

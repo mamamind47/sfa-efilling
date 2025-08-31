@@ -55,7 +55,7 @@ function ImportUserExcelModal({ isOpen, onClose, onSuccess }) {
           .filter((item) => /^\d{11}$/.test(item.studentId));
 
         setStudentData(extractedData);
-      } catch (err) {
+      } catch {
         setError("เกิดข้อผิดพลาดในการอ่านไฟล์");
       } finally {
         setLoading(false);

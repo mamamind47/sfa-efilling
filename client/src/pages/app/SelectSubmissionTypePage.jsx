@@ -27,7 +27,7 @@ function SelectSubmissionTypePage() {
   const [hoursData, setHoursData] = useState([]);
   const [academicYears, setAcademicYears] = useState([]);
   const [selectedYearId, setSelectedYearId] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -93,6 +93,18 @@ function SelectSubmissionTypePage() {
     "AOM YOUNG": {
       label: "ชั่วโมงจากการลงทุน AOM YOUNG",
       icon: <LineChart size={20} className="text-orange-500" />,
+    },
+    religious: {
+      label: "ชั่วโมงจากกิจกรรมทำนุบำรุงศาสนสถาน",
+      icon: <Church size={20} className="text-orange-500" />,
+    },
+    "social-development": {
+      label: "ชั่วโมงจากกิจกรรมพัฒนาโรงเรียน ชุมชนและสังคม",
+      icon: <School size={20} className="text-orange-500" />,
+    },
+    "ต้นไม้ล้านต้น ล้านความดี": {
+      label: "ชั่วโมงจากต้นไม้ล้านต้น ล้านความดี",
+      icon: <TreePine size={20} className="text-orange-500" />,
     },
   };
 
@@ -228,7 +240,7 @@ function SelectSubmissionTypePage() {
               <HeartPulse size={40} className="text-red-500" />
               <div>
                 <p className="text-base font-semibold text-base-content">
-                  บริจาคเลือด
+                  บริจาคโลหิต
                 </p>
                 <p className="text-sm text-base-content">
                   สำหรับผู้ที่มีใบรับรองบริจาคเลือด
@@ -252,7 +264,7 @@ function SelectSubmissionTypePage() {
               <GraduationCap size={40} className="text-blue-500" />
               <div>
                 <p className="text-base font-semibold text-base-content">
-                  เรียนออนไลน์
+                  e-Learning
                 </p>
                 <p className="text-sm text-base-content">เช่น SET e-Learning</p>
               </div>
@@ -298,7 +310,7 @@ function SelectSubmissionTypePage() {
               <LineChart size={40} className="text-green-600" />
               <div>
                 <p className="text-base font-semibold text-base-content">
-                  AOM YOUNG
+                  โครงการ AOM YOUNG
                 </p>
                 <p className="text-sm text-base-content">
                   แนบสลิปการลงทุน และ รายการเดินบัญชีกองทุน (Statement)
@@ -346,7 +358,7 @@ function SelectSubmissionTypePage() {
               <Church size={40} className="text-yellow-600" />
               <div>
                 <p className="text-base font-semibold text-base-content">
-                  กิจกรรมช่วยเหลือพัฒนาศาสนสถาน
+                  กิจกรรมทำนุบำรุงศาสนสถาน
                 </p>
                 <p className="text-sm text-base-content">
                   แนบรูปภาพขณะทำกิจกรรม พร้อมเอกสารแบบฟอร์มจิตอาสา
