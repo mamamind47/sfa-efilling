@@ -19,8 +19,10 @@ import {
   History,
   UserPen,
   Mail,
+  Newspaper,
+  PenTool,
 } from "lucide-react";
-import logo from "../assets/SL_e-Filling.png";
+import logo from "../assets/KMUTT.png";
 import NotificationBell from "./NotificationBell";
 
 
@@ -44,6 +46,12 @@ const menuItemsData = (role) =>
       icon: Hourglass,
       text: "ตรวจสอบสถานะ",
       roles: ["student"],
+    },
+    {
+      path: "/app/posts",
+      icon: Newspaper,
+      text: "ข่าวสารและประกาศ",
+      roles: ["student", "admin"],
     },
     {
       icon: SlidersHorizontal,
@@ -78,6 +86,12 @@ const menuItemsData = (role) =>
           path: "/app/upload-scholarship",
           icon: FileUp,
           text: "อัปโหลดรายชื่อสมัครทุน",
+          roles: ["admin"],
+        },
+        {
+          path: "/app/manage-posts",
+          icon: PenTool,
+          text: "จัดการข่าวสารและประกาศ",
           roles: ["admin"],
         },
       ],
@@ -180,7 +194,7 @@ const NavBar = () => {
         </label>
         <Link to={currentMenuItems[0]?.path || "/"}>
           {" "}
-          <img src={logo} alt="Logo" className="h-8 md:h-10 w-auto" />{" "}
+          <img src={logo} alt="Logo" className="h-10 md:h-10 w-auto" />{" "}
         </Link>
       </div>
 

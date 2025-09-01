@@ -1,5 +1,11 @@
 // Utility functions for submission-related operations
+import dayjs from "dayjs";
+import "dayjs/locale/th";
+import buddhistEra from "dayjs/plugin/buddhistEra";
 
+// Configure dayjs
+dayjs.locale("th");
+dayjs.extend(buddhistEra);
 
 /**
  * Get submission status badge configuration
@@ -48,13 +54,6 @@ export const getSubmissionStatusConfig = (submission) => {
  */
 export const formatThaiDate = (date, format = "D MMMM BBBB") => {
   if (!date) return "-";
-  
-  const dayjs = require("dayjs");
-  require("dayjs/locale/th");
-  const buddhistEra = require("dayjs/plugin/buddhistEra");
-  
-  dayjs.locale("th");
-  dayjs.extend(buddhistEra);
   
   return dayjs(date).format(format);
 };

@@ -17,6 +17,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const sseRoutes = require("./routes/sseRoutes");
 const emailRoutes = require("./routes/emailRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const postsRoutes = require("./routes/postsRoutes");
 const cronService = require("./services/cronService");
 
 
@@ -31,11 +32,14 @@ app.use(
   })
 );
 app.use(express.json());
-
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use(express.urlencoded({ extended: true }));
 
 // --- Public Routes (ไม่ต้องการ Login) ---
 app.use("/api/auth", authRoutes);
+app.use("/api/posts", postsRoutes);
+
+// Static file serving (must be before auth middleware)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Test Route (อาจจะไม่ต้อง Login)
 app.get("/", (req, res) => {

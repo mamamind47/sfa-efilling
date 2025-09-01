@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { GraduationCap } from "lucide-react";
 import logo from "../assets/SFA.png";
 import KMUTT from "../assets/KMUTT.png";
+import StudentLoanLogo from "../assets/StudentLoan.png";
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -32,6 +33,11 @@ const LoginPage = () => {
         <div className="flex items-center justify-center space-x-4">
           <img src={KMUTT} alt="KMUTT Logo" className="w-16 md:w-20" />
           <img src={logo} alt="SFA Logo" className="w-36 md:w-50" />
+          <img
+            src={StudentLoanLogo}
+            alt="Student Loan Logo"
+            className="w-16 md:w-20"
+          />
         </div>
 
         {/* หัวข้อ */}

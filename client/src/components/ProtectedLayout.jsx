@@ -3,7 +3,7 @@ import React from "react";
 import { Routes, Route, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import NavBar from "./Navbar";
-import logo from "../assets/SL_e-Filling.png";
+import logo from "../assets/KMUTT.png";
 import { LogOut, ChevronDown } from "lucide-react";
 
 import {
@@ -22,6 +22,8 @@ import {
   BarChart3,
   Mail,
   Bell,
+  Newspaper,
+  PenTool,
 } from "lucide-react";
 
 import ManageAcademicYearPage from "../pages/app/ManageAcademicYearPage.jsx";
@@ -45,6 +47,11 @@ import SubmitSocialDevelopmentPage from "../pages/app/SubmitSocialDevelopmentPag
 import DashboardPage from "../pages/app/DashboardPage.jsx";
 import SendEmailPage from "../pages/app/SendEmailPage.jsx";
 import NotificationsPage from "../pages/app/NotificationsPage.jsx";
+import PostsPage from "../pages/app/PostsPage.jsx";
+import PostDetailPage from "../pages/app/PostDetailPage.jsx";
+import ManagePostsPage from "../pages/app/ManagePostsPage.jsx";
+import CreatePostPage from "../pages/app/CreatePostPage.jsx";
+import EditPostPage from "../pages/app/EditPostPage.jsx";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
@@ -75,6 +82,12 @@ const menuItemsData = (role) =>
       icon: Bell,
       text: "การแจ้งเตือน",
       roles: ["student"],
+    },
+    {
+      path: "/app/posts",
+      icon: Newspaper,
+      text: "ข่าวสารและประกาศ",
+      roles: ["student", "admin"],
     },
     {
       icon: SlidersHorizontal,
@@ -109,6 +122,12 @@ const menuItemsData = (role) =>
           path: "/app/upload-scholarship",
           icon: FileUp,
           text: "อัปโหลดรายชื่อสมัครทุน",
+          roles: ["admin"],
+        },
+        {
+          path: "/app/manage-posts",
+          icon: PenTool,
+          text: "จัดการข่าวสารและประกาศ",
           roles: ["admin"],
         },
       ],
@@ -224,6 +243,8 @@ function ProtectedLayout() {
                   path="notifications"
                   element={<NotificationsPage />}
                 />
+                <Route path="posts" element={<PostsPage />} />
+                <Route path="posts/:postId" element={<PostDetailPage />} />
               </>
             )}
 
@@ -254,6 +275,11 @@ function ProtectedLayout() {
                 />
                 <Route path="manage-users" element={<UserManagementPage />} />
                 <Route path="send-email" element={<SendEmailPage />} />
+                <Route path="posts" element={<PostsPage />} />
+                <Route path="posts/create" element={<CreatePostPage />} />
+                <Route path="posts/edit/:postId" element={<EditPostPage />} />
+                <Route path="posts/:postId" element={<PostDetailPage />} />
+                <Route path="manage-posts" element={<ManagePostsPage />} />
               </>
             )}
 
@@ -280,7 +306,7 @@ function ProtectedLayout() {
               to={currentMenuItems[0]?.path || "/"}
               className="text-lg font-semibold p-0 hover:bg-transparent focus:bg-transparent active:bg-transparent"
             >
-              <img src={logo} alt="Logo" className="h-8 w-auto" />
+              <img src={logo} alt="Logo" className="h-10 w-auto" />
             </Link>
           </li>
 
