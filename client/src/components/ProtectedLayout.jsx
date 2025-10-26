@@ -6,25 +6,7 @@ import NavBar from "./Navbar";
 import logo from "../assets/KMUTT.png";
 import { LogOut, ChevronDown } from "lucide-react";
 
-import {
-  Home,
-  FileText,
-  Calendar,
-  ListChecks,
-  ClipboardCheck,
-  ClipboardEdit,
-  SlidersHorizontal,
-  Upload,
-  FileUp,
-  Hourglass,
-  History,
-  UserPen,
-  BarChart3,
-  Mail,
-  Bell,
-  Newspaper,
-  PenTool,
-} from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 import ManageAcademicYearPage from "../pages/app/ManageAcademicYearPage.jsx";
 import ManageCertificatesPage from "../pages/app/ManageCertificatesPage.jsx";
@@ -52,126 +34,26 @@ import PostDetailPage from "../pages/app/PostDetailPage.jsx";
 import ManagePostsPage from "../pages/app/ManagePostsPage.jsx";
 import CreatePostPage from "../pages/app/CreatePostPage.jsx";
 import EditPostPage from "../pages/app/EditPostPage.jsx";
+import ActivityLimitsPage from "../pages/app/ActivityLimitsPage.jsx";
+import CreateProjectPage from "../pages/app/CreateProjectPage.jsx";
+import MyProjectsPage from "../pages/app/MyProjectsPage.jsx";
+import ParticipatedProjectsPage from "../pages/app/ParticipatedProjectsPage.jsx";
+import AdminProjectsPage from "../pages/app/AdminProjectsPage.jsx";
+import ProjectDetailPage from "../pages/app/ProjectDetailPage.jsx";
+import ActivitiesPage from "../pages/app/ActivitiesPage.jsx";
+import MyActivitiesPage from "../pages/app/MyActivitiesPage.jsx";
+import EditProjectPage from "../pages/app/EditProjectPage.jsx";
+import { menuItemsData, createNavigationHelpers } from "../constants/menuData.js";
 
 const CompletedCertificatesPage = () => (
   <div className="p-4">Completed Certificates Page</div>
 );
 
-const menuItemsData = (role) =>
-  [
-    {
-      path: "/app/dashboard",
-      icon: Home,
-      text: "หน้าหลัก",
-      roles: ["student", "admin"],
-    },
-    {
-      path: "/app/submit/select",
-      icon: FileText,
-      text: "ยื่นใบรับรอง",
-      roles: ["student"],
-    },
-    {
-      path: "/app/submission-status",
-      icon: Hourglass,
-      text: "ตรวจสอบสถานะ",
-      roles: ["student"],
-    },
-    {
-      path: "/app/notifications",
-      icon: Bell,
-      text: "การแจ้งเตือน",
-      roles: ["student"],
-    },
-    {
-      path: "/app/posts",
-      icon: Newspaper,
-      text: "ข่าวสารและประกาศ",
-      roles: ["student", "admin"],
-    },
-    {
-      icon: SlidersHorizontal,
-      text: "จัดการ",
-      roles: ["admin"],
-      subItems: [
-        {
-          path: "/app/manage-academic-year",
-          icon: Calendar,
-          text: "จัดการปีการศึกษา",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/manage-users",
-          icon: UserPen,
-          text: "จัดการผู้ใช้",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/manage-certificates",
-          icon: ClipboardEdit,
-          text: "จัดการหัวข้อ",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/upload-modlink",
-          icon: Upload,
-          text: "อัปโหลดชั่วโมง (MOD LINK)",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/upload-scholarship",
-          icon: FileUp,
-          text: "อัปโหลดรายชื่อสมัครทุน",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/manage-posts",
-          icon: PenTool,
-          text: "จัดการข่าวสารและประกาศ",
-          roles: ["admin"],
-        },
-      ],
-    },
-    {
-      path: "/app/pending-approvals",
-      icon: ListChecks,
-      text: "รอดำเนินการ",
-      roles: ["admin"],
-    },
-    {
-      path: "/app/history-approvals",
-      icon: History,
-      text: "ประวัติการอนุมัติ",
-      roles: ["admin"],
-    },
-    {
-      path: "/app/report",
-      icon: ClipboardCheck,
-      text: "สถิตินักศึกษา",
-      roles: ["admin"],
-    },
-    {
-      path: "/app/send-email",
-      icon: Mail,
-      text: "ส่งอีเมล",
-      roles: ["admin"],
-    },
-  ].filter((item) => item.roles.includes(role));
-
 function ProtectedLayout() {
   const { role, logout } = useAuth();
   const location = useLocation();
   const currentMenuItems = menuItemsData(role || "");
-
-  const isActive = (path) => {
-    return (
-      location.pathname === path || location.pathname.startsWith(path + "/")
-    );
-  };
-
-  const isSubMenuActive = (subItems) => {
-    return subItems && subItems.some((item) => isActive(item.path));
-  };
+  const { isActive, isSubMenuActive } = createNavigationHelpers(location);
 
   const getMobileLinkClass = (path) => {
     let baseClasses = "flex items-center space-x-3 text-base rounded-md";
@@ -245,6 +127,13 @@ function ProtectedLayout() {
                 />
                 <Route path="posts" element={<PostsPage />} />
                 <Route path="posts/:postId" element={<PostDetailPage />} />
+                <Route path="create-project" element={<CreateProjectPage />} />
+                <Route path="my-projects" element={<MyProjectsPage />} />
+                <Route path="participated-projects" element={<ParticipatedProjectsPage />} />
+                <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+                <Route path="projects/:projectId/edit" element={<EditProjectPage />} />
+                <Route path="activities" element={<ActivitiesPage />} />
+                <Route path="my-activities" element={<MyActivitiesPage />} />
               </>
             )}
 
@@ -280,6 +169,12 @@ function ProtectedLayout() {
                 <Route path="posts/edit/:postId" element={<EditPostPage />} />
                 <Route path="posts/:postId" element={<PostDetailPage />} />
                 <Route path="manage-posts" element={<ManagePostsPage />} />
+                <Route path="activity-limits" element={<ActivityLimitsPage />} />
+                <Route path="manage-projects" element={<AdminProjectsPage />} />
+                <Route path="create-project" element={<CreateProjectPage />} />
+                <Route path="my-projects" element={<MyProjectsPage />} />
+                <Route path="projects/:projectId" element={<ProjectDetailPage />} />
+                <Route path="projects/:projectId/edit" element={<EditProjectPage />} />
               </>
             )}
 

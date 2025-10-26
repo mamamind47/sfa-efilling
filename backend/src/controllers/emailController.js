@@ -1,4 +1,5 @@
 const emailService = require('../services/emailService');
+const notificationService = require('../services/notificationService');
 const prisma = require('../config/database');
 
 /**
@@ -784,6 +785,24 @@ exports.sendToUsers = async (req, res) => {
       result = { success: true, results };
     }
 
+    // Create in-app notifications for all recipients
+    try {
+      const notificationTitle = headerTitle || subject;
+      const notificationMessage = message.length > 200
+        ? message.substring(0, 197) + '...'
+        : message;
+
+      await notificationService.createBulkAnnouncementNotifications(
+        validUsers.map(u => u.user_id),
+        notificationTitle,
+        notificationMessage
+      );
+      console.log(`✅ Created ${validUsers.length} in-app notifications for email recipients`);
+    } catch (notifError) {
+      console.error('Failed to create in-app notifications:', notifError);
+      // Don't fail the request if notifications fail
+    }
+
     res.json({
       message: 'Emails sent successfully',
       method: sendMethod,
@@ -899,6 +918,24 @@ exports.sendToGroup = async (req, res) => {
         results.push({ user: user.email, result: userResult });
       }
       result = { success: true, results };
+    }
+
+    // Create in-app notifications for all recipients
+    try {
+      const notificationTitle = headerTitle || 'ประกาศจากระบบ';
+      const notificationMessage = message.length > 200
+        ? message.substring(0, 197) + '...'
+        : message;
+
+      await notificationService.createBulkAnnouncementNotifications(
+        validUsers.map(u => u.user_id),
+        notificationTitle,
+        notificationMessage
+      );
+      console.log(`✅ Created ${validUsers.length} in-app notifications for group email recipients`);
+    } catch (notifError) {
+      console.error('Failed to create in-app notifications:', notifError);
+      // Don't fail the request if notifications fail
     }
 
     res.json({

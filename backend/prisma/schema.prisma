@@ -17,6 +17,8 @@ model academic_years {
   updated_at        DateTime       @default(now()) @db.DateTime(0)
 
   submissions       submissions[]
+  activity_limits   activity_limits[]
+  projects          projects[]
 }
 
 model linked_volunteer {
@@ -96,10 +98,13 @@ model users {
   created_at        DateTime                  @default(now()) @db.DateTime(0)
   updated_at        DateTime                  @default(now()) @db.DateTime(0)
 
-  submissions  submissions[]
-  status_logs  submission_status_logs[]  @relation("StatusChanger")
-  notifications notifications[]           @relation("UserNotifications")
-  posts        posts[]                   @relation("PostAuthor")
+  submissions        submissions[]
+  status_logs        submission_status_logs[]  @relation("StatusChanger")
+  notifications      notifications[]           @relation("UserNotifications")
+  posts              posts[]                   @relation("PostAuthor")
+  created_projects   projects[]                @relation("ProjectCreator")
+  reviewed_projects  projects[]                @relation("ProjectReviewer")
+  project_participants project_participants[]  @relation("ProjectParticipant")
 }
 
 model submission_status_logs {
@@ -135,6 +140,10 @@ model notifications {
 
   user            users              @relation("UserNotifications", fields: [user_id], references: [user_id], onDelete: Cascade)
   submission      submissions?       @relation("SubmissionNotifications", fields: [submission_id], references: [submission_id], onDelete: Cascade)
+
+  @@index([user_id, created_at(sort: Desc)], name: "idx_user_created")
+  @@index([user_id, read_status, created_at(sort: Desc)], name: "idx_user_read_created")
+  @@index([type, created_at], name: "idx_type_created")
 }
 
 model post_categories {
@@ -172,6 +181,96 @@ model posts {
   @@index([is_published])
 }
 
+// =====================================================
+// PROJECTS SYSTEM
+// =====================================================
+
+model projects {
+  project_id       String              @id @default(uuid()) @db.Char(36)
+  project_name     String              @db.VarChar(255)
+  project_type     project_type
+  description      String?             @db.Text
+
+  // วันที่และสถานที่
+  start_date       DateTime            @db.DateTime(0)
+  end_date         DateTime            @db.DateTime(0)
+  location         String?             @db.VarChar(255)
+  campus           String?             @db.VarChar(100)
+  province         String?             @db.VarChar(100)
+
+  hours_per_person Int
+
+  created_by       String              @db.Char(36)
+  academic_year_id String              @db.Char(36)
+  status           project_status      @default(draft)
+
+  rejection_reason String?             @db.Text
+  reviewed_by      String?             @db.Char(36)
+  reviewed_at      DateTime?           @db.DateTime(0)
+
+  submitted_at     DateTime?           @db.DateTime(0)
+  resubmit_count   Int                 @default(0)
+
+  created_at       DateTime            @default(now()) @db.DateTime(0)
+  updated_at       DateTime            @updatedAt @db.DateTime(0)
+
+  creator          users               @relation("ProjectCreator", fields: [created_by], references: [user_id])
+  reviewer         users?              @relation("ProjectReviewer", fields: [reviewed_by], references: [user_id])
+  academic_year    academic_years      @relation(fields: [academic_year_id], references: [academic_year_id])
+
+  participants     project_participants[]
+  files            project_files[]
+
+  @@index([created_by])
+  @@index([academic_year_id])
+  @@index([status])
+  @@index([project_type])
+  @@index([province])
+  @@index([created_at])
+}
+
+model project_participants {
+  participant_id   String              @id @default(uuid()) @db.Char(36)
+  project_id       String              @db.Char(36)
+  user_id          String              @db.Char(36)
+
+  status           participant_status  @default(pending)
+  hours_received   Int?
+  rejection_reason String?             @db.Text
+
+  added_at         DateTime            @default(now()) @db.DateTime(0)
+  approved_at      DateTime?           @db.DateTime(0)
+
+  project          projects            @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+  user             users               @relation("ProjectParticipant", fields: [user_id], references: [user_id])
+  files            project_files[]     @relation("ParticipantFiles")
+
+  @@unique([project_id, user_id])
+  @@index([user_id])
+  @@index([project_id])
+  @@index([status])
+}
+
+model project_files {
+  file_id                    String                 @id @default(uuid()) @db.Char(36)
+  project_id                 String                 @db.Char(36)
+  file_path                  String                 @db.VarChar(500)
+  document_type              String                 @db.VarChar(100)
+  note                       String?                @db.VarChar(255)
+  added_with_participant_id  String?                @db.Char(36)
+  uploaded_at                DateTime               @default(now()) @db.DateTime(0)
+
+  project                    projects               @relation(fields: [project_id], references: [project_id], onDelete: Cascade)
+  added_with_participant     project_participants?  @relation("ParticipantFiles", fields: [added_with_participant_id], references: [participant_id], onDelete: Cascade)
+
+  @@index([project_id])
+  @@index([added_with_participant_id])
+}
+
+// =====================================================
+// POSTS SYSTEM
+// =====================================================
+
 model post_attachments {
   attachment_id   String    @id @default(uuid()) @db.Char(36)
   post_id         String    @db.Char(36)
@@ -208,9 +307,10 @@ enum student_status {
 
 enum notification_type {
   APPROVED
-  REJECTED  
+  REJECTED
   DEADLINE_WARNING
   HOURS_COMPLETE
+  ANNOUNCEMENT
 }
 
 enum academic_years_status {
@@ -221,6 +321,52 @@ enum academic_years_status {
 
 enum scholarship_type {
   TYPE1    @map("ลักษณะที่ 1")
-  TYPE2    @map("ลักษณะที่ 2") 
+  TYPE2    @map("ลักษณะที่ 2")
   TYPE3    @map("ลักษณะที่ 3")
+}
+
+enum project_type {
+  religious            @map("ทำนุบำรุงศาสนสถาน")
+  social_development   @map("พัฒนาโรงเรียน/ชุมชน")
+  university_activity  @map("กิจกรรมภายในมหาวิทยาลัย")
+}
+
+enum project_status {
+  draft      @map("ฉบับร่าง")
+  submitted  @map("รอการอนุมัติ")
+  approved   @map("อนุมัติแล้ว")
+  rejected   @map("ไม่อนุมัติ")
+}
+
+enum participant_status {
+  pending    @map("รอการอนุมัติ")
+  approved   @map("อนุมัติแล้ว")
+  rejected   @map("ไม่อนุมัติ")
+}
+
+enum activity_type {
+  Certificate           @map("Certificate")
+  BloodDonate           @map("BloodDonate")
+  NSF                   @map("NSF")
+  AOM_YOUNG             @map("AOM YOUNG")
+  religious             @map("religious")
+  social_development    @map("social-development")
+  tree_planting         @map("ต้นไม้ล้านต้น ล้านความดี")
+}
+
+model activity_limits {
+  limit_id          String              @id @default(uuid()) @db.Char(36)
+  activity_type     activity_type
+  max_hours         Int
+  academic_year_id  String              @db.Char(36)
+  is_active         Boolean             @default(true)
+  description       String?             @db.Text
+  created_at        DateTime            @default(now()) @db.DateTime(0)
+  updated_at        DateTime            @updatedAt @db.DateTime(0)
+
+  academic_year     academic_years      @relation(fields: [academic_year_id], references: [academic_year_id], onDelete: Cascade)
+
+  @@unique([activity_type, academic_year_id])
+  @@index([academic_year_id])
+  @@index([activity_type])
 }

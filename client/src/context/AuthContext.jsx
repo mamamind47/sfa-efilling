@@ -17,21 +17,33 @@ const isTokenExpired = (token) => {
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('authToken'));
   const [role, setRole] = useState(() => localStorage.getItem('userRole'));
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (token) {
       if (isTokenExpired(token)) {
         logout();
-      } else if (!role) {
-        const storedRole = localStorage.getItem('userRole');
-        if (storedRole) setRole(storedRole);
-        else console.warn('Token exists but role missing.');
+      } else {
+        // Decode token to get user info
+        try {
+          const decoded = jwtDecode(token);
+          setUser(decoded);
+        } catch (error) {
+          console.error('Error decoding token:', error);
+        }
+
+        if (!role) {
+          const storedRole = localStorage.getItem('userRole');
+          if (storedRole) setRole(storedRole);
+          else console.warn('Token exists but role missing.');
+        }
       }
     } else {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userRole');
       setRole(null);
+      setUser(null);
     }
   }, [token, role]);
 
@@ -40,6 +52,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userRole', userRole);
     setToken(newToken);
     setRole(userRole);
+
+    // Decode token to get user info
+    try {
+      const decoded = jwtDecode(newToken);
+      setUser(decoded);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+    }
   };
 
   const logout = () => {
@@ -47,13 +67,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('userRole');
     setToken(null);
     setRole(null);
+    setUser(null);
     navigate('/login', { replace: true });
   };
 
   const isAuthenticated = !!token;
 
   return (
-    <AuthContext.Provider value={{ token, role, isAuthenticated, login, logout }}>
+    <AuthContext.Provider value={{ token, role, user, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

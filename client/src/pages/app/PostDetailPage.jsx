@@ -120,15 +120,16 @@ const PostDetailPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto px-4 py-4 md:py-6 max-w-7xl">
       {/* Back Button */}
-      <div className="mb-6">
+      <div className="mb-4 md:mb-6">
         <Link
           to="/app/posts"
-          className="btn btn-ghost gap-2 hover:bg-gray-100"
+          className="btn btn-sm md:btn-md btn-ghost gap-2 hover:bg-gray-100"
         >
           <ArrowLeft className="w-4 h-4" />
-          กลับไปหน้าข่าวสาร
+          <span className="hidden sm:inline">กลับไปหน้าข่าวสาร</span>
+          <span className="sm:hidden">กลับ</span>
         </Link>
       </div>
 
@@ -140,7 +141,7 @@ const PostDetailPage = () => {
       >
         {/* Featured Image */}
         {post.featured_image && (
-          <div className="relative h-64 md:h-80 overflow-hidden rounded-t-lg">
+          <div className="relative h-48 md:h-64 lg:h-80 overflow-hidden rounded-t-lg">
             <img
               src={`${import.meta.env.VITE_FILE_BASE_URL}/${post.featured_image}`}
               alt={post.title}
@@ -150,39 +151,39 @@ const PostDetailPage = () => {
           </div>
         )}
 
-        <div className="p-6 md:p-8">
+        <div className="p-4 md:p-6 lg:p-8">
           {/* Header */}
-          <header className="mb-6">
-            <div className="flex items-center gap-2 mb-4">
+          <header className="mb-4 md:mb-6">
+            <div className="flex items-center gap-2 mb-3 md:mb-4">
               {post.is_pinned && (
-                <Pin className="w-5 h-5 text-orange-500" />
+                <Pin className="w-4 md:w-5 h-4 md:h-5 text-orange-500" />
               )}
               {post.category && (
                 <span
-                  className="badge badge-lg text-white"
+                  className="badge badge-md md:badge-lg text-white text-xs md:text-sm"
                   style={{ backgroundColor: post.category.color }}
                 >
                   {post.category.name}
                 </span>
               )}
             </div>
-            
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4 leading-tight">
+
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 mb-3 md:mb-4 leading-tight">
               {post.title}
             </h1>
-            
+
             {/* Meta Information */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 pb-4 border-b border-gray-200">
+            <div className="flex flex-wrap items-center gap-3 md:gap-4 text-xs md:text-sm text-gray-600 pb-3 md:pb-4 border-b border-gray-200">
               <div className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                <span>โดย {post.author.name}</span>
+                <User className="w-3 md:w-4 h-3 md:h-4" />
+                <span className="truncate max-w-[120px] md:max-w-none">โดย {post.author.name}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Calendar className="w-4 h-4" />
+                <Calendar className="w-3 md:w-4 h-3 md:h-4" />
                 <span>{formatThaiDate(post.created_at)}</span>
               </div>
               <div className="flex items-center gap-1">
-                <Eye className="w-4 h-4" />
+                <Eye className="w-3 md:w-4 h-3 md:h-4" />
                 <span>{post.view_count.toLocaleString()} ครั้ง</span>
               </div>
             </div>
@@ -193,13 +194,13 @@ const PostDetailPage = () => {
 
           {/* Attachments */}
           {post.attachments && post.attachments.length > 0 && (
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Paperclip className="w-5 h-5 text-gray-600" />
+            <div className="border-t border-gray-200 pt-4 md:pt-6 mt-4 md:mt-6">
+              <h3 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4 flex items-center gap-2">
+                <Paperclip className="w-4 md:w-5 h-4 md:h-5 text-gray-600" />
                 ไฟล์แนบ ({post.attachments.length} ไฟล์)
               </h3>
-              
-              <div className="grid gap-4">
+
+              <div className="grid gap-3 md:gap-4">
                 {post.attachments.map((attachment) => {
                   const isImage = isImageFile(attachment.file_type);
                   
@@ -219,15 +220,15 @@ const PostDetailPage = () => {
                               }}
                             />
                             <div className="absolute inset-0 bg-gray-200 items-center justify-center hidden">
-                              <ImageIcon className="w-12 h-12 text-gray-400" />
+                              <ImageIcon className="w-8 md:w-12 h-8 md:h-12 text-gray-400" />
                             </div>
                           </div>
-                          <div className="p-4">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 flex-1 min-w-0">
-                                <ImageIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                          <div className="p-3 md:p-4">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                              <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+                                <ImageIcon className="w-4 md:w-5 h-4 md:h-5 text-blue-500 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-800 truncate">
+                                  <p className="text-xs md:text-sm font-medium text-gray-800 truncate">
                                     {attachment.file_name}
                                   </p>
                                   <p className="text-xs text-gray-500">
@@ -238,18 +239,19 @@ const PostDetailPage = () => {
                               <div className="flex items-center gap-2">
                                 <button
                                   onClick={() => window.open(`${import.meta.env.VITE_FILE_BASE_URL}/${attachment.file_path}`, '_blank')}
-                                  className="btn btn-sm btn-outline gap-1"
+                                  className="btn btn-xs md:btn-sm btn-outline gap-1 flex-1 sm:flex-none"
                                   title="ดูรูปภาพขนาดเต็ม"
                                 >
-                                  <ExternalLink className="w-4 h-4" />
-                                  ดูเต็มหน้าจอ
+                                  <ExternalLink className="w-3 md:w-4 h-3 md:h-4" />
+                                  <span className="hidden sm:inline">ดูเต็มหน้าจอ</span>
+                                  <span className="sm:hidden">ดู</span>
                                 </button>
                                 <button
                                   onClick={() => handleDownloadFile(attachment)}
-                                  className="btn btn-sm btn-primary gap-1"
+                                  className="btn btn-xs md:btn-sm btn-primary gap-1 flex-1 sm:flex-none"
                                   title="ดาวน์โหลดรูปภาพ"
                                 >
-                                  <Download className="w-4 h-4" />
+                                  <Download className="w-3 md:w-4 h-3 md:h-4" />
                                   ดาวน์โหลด
                                 </button>
                               </div>
@@ -258,11 +260,11 @@ const PostDetailPage = () => {
                         </div>
                       ) : (
                         // Regular file attachment
-                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                             {getFileIcon(attachment.file_type)}
                             <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 truncate">
+                              <p className="text-xs md:text-sm font-medium text-gray-800 truncate">
                                 {attachment.file_name}
                               </p>
                               <p className="text-xs text-gray-500">
@@ -270,14 +272,14 @@ const PostDetailPage = () => {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleDownloadFile(attachment)}
-                              className="btn btn-sm btn-primary gap-1"
+                              className="btn btn-xs md:btn-sm btn-primary gap-1 w-full sm:w-auto"
                               title="ดาวน์โหลดไฟล์"
                             >
-                              <Download className="w-4 h-4" />
+                              <Download className="w-3 md:w-4 h-3 md:h-4" />
                               ดาวน์โหลด
                             </button>
                           </div>
@@ -291,16 +293,6 @@ const PostDetailPage = () => {
           )}
         </div>
       </motion.article>
-
-      {/* Back to list button */}
-      <div className="text-center mt-8">
-        <Link
-          to="/app/posts"
-          className="btn btn-outline btn-primary"
-        >
-          ดูข่าวสารอื่นๆ
-        </Link>
-      </div>
     </div>
   );
 };

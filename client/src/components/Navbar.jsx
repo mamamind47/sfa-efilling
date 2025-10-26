@@ -2,126 +2,10 @@
 import React from "react";
 import { useLocation, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import {
-  Home,
-  FileText,
-  Calendar,
-  ListChecks,
-  ClipboardCheck,
-  ClipboardEdit,
-  LogOut,
-  Menu as MenuIcon,
-  SlidersHorizontal,
-  ChevronDown,
-  Upload,
-  FileUp,
-  Hourglass,
-  History,
-  UserPen,
-  Mail,
-  Newspaper,
-  PenTool,
-} from "lucide-react";
+import { LogOut, Menu as MenuIcon, ChevronDown } from "lucide-react";
 import logo from "../assets/KMUTT.png";
 import NotificationBell from "./NotificationBell";
-
-
-// --- ข้อมูลเมนู ---
-const menuItemsData = (role) =>
-  [
-    {
-      path: "/app/dashboard",
-      icon: Home,
-      text: "หน้าหลัก",
-      roles: ["student", "admin"],
-    },
-    {
-      path: "/app/submit/select",
-      icon: FileText,
-      text: "ยื่นใบรับรอง",
-      roles: ["student"],
-    },
-    {
-      path: "/app/submission-status",
-      icon: Hourglass,
-      text: "ตรวจสอบสถานะ",
-      roles: ["student"],
-    },
-    {
-      path: "/app/posts",
-      icon: Newspaper,
-      text: "ข่าวสารและประกาศ",
-      roles: ["student", "admin"],
-    },
-    {
-      icon: SlidersHorizontal,
-      text: "จัดการ",
-      roles: ["admin"],
-      subItems: [
-        {
-          path: "/app/manage-academic-year",
-          icon: Calendar,
-          text: "จัดการปีการศึกษา",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/manage-users",
-          icon: UserPen,
-          text: "จัดการผู้ใช้",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/manage-certificates",
-          icon: ClipboardEdit,
-          text: "จัดการหัวข้อ",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/upload-modlink",
-          icon: Upload,
-          text: "อัปโหลดชั่วโมง (MOD LINK)",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/upload-scholarship",
-          icon: FileUp,
-          text: "อัปโหลดรายชื่อสมัครทุน",
-          roles: ["admin"],
-        },
-        {
-          path: "/app/manage-posts",
-          icon: PenTool,
-          text: "จัดการข่าวสารและประกาศ",
-          roles: ["admin"],
-        },
-      ],
-    },
-    {
-      path: "/app/pending-approvals",
-      icon: ListChecks,
-      text: "รอดำเนินการ",
-      roles: ["admin"],
-    },
-    {
-      path: "/app/history-approvals",
-      icon: History,
-      text: "ประวัติการอนุมัติ",
-      roles: ["admin"],
-    },
-    {
-      path: "/app/report",
-      icon: ClipboardCheck,
-      text: "สถิตินักศึกษา",
-      roles: ["admin"],
-    },
-    {
-      path: "/app/send-email",
-      icon: Mail,
-      text: "ส่งอีเมล",
-      roles: ["admin"],
-    },
-  ].filter((item) => item.roles.includes(role));
-// --- ------------ ---
+import { menuItemsData, createNavigationHelpers } from "../constants/menuData.js";
 
 // --- Helper Components & Functions ---
 const NavLink = ({ path, icon, text }) => {
@@ -157,19 +41,10 @@ const NavLink = ({ path, icon, text }) => {
 // --- --------------------------- ---
 
 const NavBar = () => {
-  const location = useLocation(); // ย้าย useLocation มาที่นี่เพื่อให้ getLinkClassForDropdown ใช้ได้
+  const location = useLocation();
   const { role, logout } = useAuth();
   const currentMenuItems = menuItemsData(role || "");
-
-  // Functions เช็ค Active State (ควรอยู่ใน Scope นี้)
-  const isActive = (path) => {
-    return (
-      location.pathname === path || location.pathname.startsWith(path + "/")
-    );
-  };
-  const isSubMenuActive = (subItems) => {
-    return subItems && subItems.some((item) => isActive(item.path));
-  };
+  const { isActive, isSubMenuActive } = createNavigationHelpers(location);
   // Function สร้าง Class สำหรับ Dropdown Trigger (Parent Menu)
   const getLinkClassForDropdown = (subItems) => {
     let baseClasses =

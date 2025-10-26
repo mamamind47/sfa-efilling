@@ -345,56 +345,6 @@ function SelectSubmissionTypePage() {
           </div>
         </motion.button>
 
-        <motion.button
-          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
-          whileHover={{ scale: 1.03 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-          onClick={() => navigate(`/app/submit/${selectedYearId}/religious`)}
-        >
-          <div className="card-body flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Church size={40} className="text-yellow-600" />
-              <div>
-                <p className="text-base font-semibold text-base-content">
-                  กิจกรรมทำนุบำรุงศาสนสถาน
-                </p>
-                <p className="text-sm text-base-content">
-                  แนบรูปภาพขณะทำกิจกรรม พร้อมเอกสารแบบฟอร์มจิตอาสา
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="shrink-0" />
-          </div>
-        </motion.button>
-
-        <motion.button
-          className="card bg-base-100 shadow-md border border-base-200 hover:shadow-lg transition cursor-pointer"
-          whileHover={{ scale: 1.03 }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.4 }}
-          onClick={() => navigate(`/app/submit/${selectedYearId}/social-development`)}
-        >
-          <div className="card-body flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <School size={40} className="text-blue-600" />
-              <div>
-                <p className="text-base font-semibold text-base-content">
-                  กิจกรรมพัฒนาโรงเรียน ชุมชนและสังคม
-                </p>
-                <p className="text-sm text-base-content">
-                  เฉพาะกิจกรรมที่ไม่ใช่เป็นกิจกรรมมหาวิทยาลัยเท่านั้น
-                </p>
-                <p className="text-sm text-base-content">
-                  หากเป็นกิจกรรมมหาวิทยาลัย โปรดติดต่อผู้จัดงาน
-                </p>
-              </div>
-            </div>
-            <ArrowRight className="shrink-0" />
-          </div>
-        </motion.button>
       </div>
     </motion.div>
   );

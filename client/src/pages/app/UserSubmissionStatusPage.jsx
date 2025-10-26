@@ -27,6 +27,18 @@ dayjs.extend(buddhistEra);
 // --- Status Detail Popup Component ---
 // (เหมือนเดิม - ควรแยก Component)
 function StatusDetailPopup({ submission, onClose }) {
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    document.addEventListener("keydown", handleEscKey);
+    return () => {
+      document.removeEventListener("keydown", handleEscKey);
+    };
+  }, [onClose]);
+
   if (!submission) return null;
   const currentStatusInfo = submission.status_logs?.[0];
   const status = currentStatusInfo?.status || submission.status || "submitted";
@@ -38,7 +50,7 @@ function StatusDetailPopup({ submission, onClose }) {
     const currentStep = statusMap[currentStatus] || 1;
     const isActive = stepNumber <= currentStep;
     if (currentStatus === "rejected" && stepNumber === 2)
-      return "bg-red-500 text-white border-none";
+      return "bg-gradient-to-br from-red-400 to-rose-600 text-white border-none shadow-lg";
     if (stepNumber === currentStep)
       return "bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-none";
     if (isActive) return "border-2 border-orange-400 text-orange-400";
@@ -48,10 +60,12 @@ function StatusDetailPopup({ submission, onClose }) {
     const statusMap = { submitted: 1, approved: 3, rejected: 2 };
     const currentStep = statusMap[currentStatus] || 1;
     if (currentStatus === "rejected" && stepNumber === 1)
-      return "h-1 w-full bg-gradient-to-r from-yellow-400 to-orange-500 mx-1 md:mx-2";
+      return "h-2 w-full bg-gradient-to-r from-yellow-400 to-red-400 rounded-full";
+    if (currentStatus === "rejected" && stepNumber === 2)
+      return "h-2 w-full bg-gray-300 rounded-full";
     return stepNumber < currentStep
-      ? "h-1 w-full bg-gradient-to-r from-yellow-400 to-orange-500 mx-1 md:mx-2"
-      : "h-1 w-full bg-gray-200 mx-1 md:mx-2";
+      ? "h-2 w-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full"
+      : "h-2 w-full bg-gray-300 rounded-full";
   };
   const getStatusText = (statusValue) => {
     switch (statusValue) {
@@ -74,52 +88,48 @@ function StatusDetailPopup({ submission, onClose }) {
           <X size={24} />
         </button>
         <h2 className="text-xl font-semibold mb-6 text-center text-gray-800 border-b pb-3">
-          รายละเอียดสถานะคำร้อง
+          รายละเอียดสถานะคำขอ
         </h2>
         {/* Status Steps */}
-        <div className="flex items-start justify-center mb-8 w-full px-2 md:px-4">
-          <div className="flex flex-col items-center text-center w-1/3">
+        <div className="flex items-center justify-center mb-8 w-full px-2 md:px-4">
+          <div className="flex flex-col items-center text-center">
             <div
               className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold ${getStepClass(
                 1,
                 status
-              )} mb-1`}
+              )} mb-2`}
             >
               1
             </div>
-            <div className="text-xs md:text-sm text-gray-600 leading-tight">
+            <div className="text-xs md:text-sm text-gray-600 leading-tight whitespace-nowrap">
               ยื่นคำขอ
             </div>
           </div>
-          <div
-            className={`flex-1 mt-5 md:mt-6 ${getLineClass(1, status)}`}
-          ></div>
-          <div className="flex flex-col items-center text-center w-1/3">
+          <div className={`flex-1 ${getLineClass(1, status)} mx-2 md:mx-4`}></div>
+          <div className="flex flex-col items-center text-center">
             <div
               className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold ${getStepClass(
                 2,
                 status
-              )} mb-1`}
+              )} mb-2`}
             >
               2
             </div>
-            <div className="text-xs md:text-sm text-gray-600 leading-tight">
+            <div className="text-xs md:text-sm text-gray-600 leading-tight whitespace-nowrap">
               {status === "rejected" ? "ปฏิเสธ" : "ดำเนินการ"}
             </div>
           </div>
-          <div
-            className={`flex-1 mt-5 md:mt-6 ${getLineClass(2, status)}`}
-          ></div>
-          <div className="flex flex-col items-center text-center w-1/3">
+          <div className={`flex-1 ${getLineClass(2, status)} mx-2 md:mx-4`}></div>
+          <div className="flex flex-col items-center text-center">
             <div
               className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-sm md:text-base font-bold ${getStepClass(
                 3,
                 status
-              )} mb-1`}
+              )} mb-2`}
             >
               3
             </div>
-            <div className="text-xs md:text-sm text-gray-600 leading-tight">
+            <div className="text-xs md:text-sm text-gray-600 leading-tight whitespace-nowrap">
               อนุมัติ
             </div>
           </div>
@@ -128,7 +138,7 @@ function StatusDetailPopup({ submission, onClose }) {
         <div className="space-y-3 text-sm border-t pt-5 text-gray-700">
           <div className="flex justify-between">
             {" "}
-            <strong className="text-gray-500">ID คำร้อง:</strong>{" "}
+            <strong className="text-gray-500">ID คำขอ:</strong>{" "}
             <span className="font-mono text-xs">
               {submission.submission_id}
             </span>{" "}
@@ -192,13 +202,6 @@ function StatusDetailPopup({ submission, onClose }) {
               <p className="whitespace-pre-wrap text-sm">{reason}</p>
             </div>
           )}
-        </div>
-        {/* Close button */}
-        <div className="text-center mt-6 border-t pt-4">
-          {" "}
-          <button onClick={onClose} className="btn btn-sm btn-outline">
-            ปิด
-          </button>{" "}
         </div>
       </div>
     </div>
@@ -265,7 +268,7 @@ function UserSubmissionStatusPage() {
         setError(
           err.response?.data?.error ||
             err.message ||
-            "ไม่สามารถโหลดข้อมูลคำร้องได้"
+            "ไม่สามารถโหลดข้อมูลคำขอได้"
         );
         setSubmissions([]);
         setAvailableSubmissionYears([]);
@@ -291,13 +294,13 @@ function UserSubmissionStatusPage() {
     switch (status) {
       case "approved":
         return (
-          <span className="badge badge-success text-white badge-sm font-medium">
+          <span className="badge bg-green-600 text-white badge-sm font-medium border-0">
             อนุมัติแล้ว
           </span>
         );
       case "rejected":
         return (
-          <span className="badge badge-error text-white badge-sm font-medium">
+          <span className="badge bg-red-600 text-white badge-sm font-medium border-0">
             ถูกปฏิเสธ
           </span>
         );
@@ -327,10 +330,10 @@ function UserSubmissionStatusPage() {
               <FileText className="w-6 h-6" />
               <div>
                 <h1 className="text-xl font-bold">
-                  สถานะคำร้องของฉัน
+                  สถานะคำขอของฉัน
                 </h1>
                 <p className="text-blue-100 mt-1 text-sm">
-                  ตรวจสอบสถานะและความคืบหน้าการยื่นคำร้องทั้งหมด
+                  ตรวจสอบสถานะและความคืบหน้าการยื่นกิจกรรมจิตอาสาทั้งหมด
                 </p>
               </div>
             </div>

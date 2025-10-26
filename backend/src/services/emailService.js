@@ -273,6 +273,75 @@ class EmailService {
       return false;
     }
   }
+
+  /**
+   * Send emails in batches with delays to prevent SMTP rate limiting
+   * Optimized for large-scale notifications (1000+ recipients)
+   * @param {Array} emailData - Array of {to, subject, template, variables, attachments}
+   * @param {Object} options - {batchSize: 50, delayMs: 2000}
+   * @returns {Promise<{success: number, failed: number, errors: Array, duration: number}>}
+   */
+  async sendBatchEmails(emailData, options = {}) {
+    const { batchSize = 50, delayMs = 2000 } = options;
+    const startTime = Date.now();
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: []
+    };
+
+    console.log(`📧 Starting batch email sending: ${emailData.length} emails (batches of ${batchSize})`);
+
+    // Split into batches
+    for (let i = 0; i < emailData.length; i += batchSize) {
+      const batch = emailData.slice(i, i + batchSize);
+      const batchNumber = Math.floor(i / batchSize) + 1;
+      const totalBatches = Math.ceil(emailData.length / batchSize);
+
+      console.log(`📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} emails)...`);
+
+      // Send all emails in this batch concurrently using Promise.allSettled
+      // This ensures one failure doesn't stop the entire batch
+      const batchResults = await Promise.allSettled(
+        batch.map(email => this.sendEmail(email))
+      );
+
+      // Count results
+      batchResults.forEach((result, index) => {
+        if (result.status === 'fulfilled' && result.value.success) {
+          results.success++;
+        } else {
+          results.failed++;
+          const emailTo = batch[index].to;
+          const errorMsg = result.status === 'rejected'
+            ? result.reason?.message
+            : result.value?.error || 'Unknown error';
+
+          results.errors.push({
+            email: emailTo,
+            error: errorMsg
+          });
+          console.error(`   ❌ Failed to send to ${emailTo}: ${errorMsg}`);
+        }
+      });
+
+      console.log(`   ✅ Batch ${batchNumber} complete: ${batchResults.filter(r => r.status === 'fulfilled' && r.value.success).length}/${batch.length} successful`);
+
+      // Delay between batches (except for last batch) to prevent SMTP rate limiting
+      if (i + batchSize < emailData.length) {
+        console.log(`   ⏳ Waiting ${delayMs}ms before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`✅ Batch email sending complete in ${duration}s: ${results.success} success, ${results.failed} failed`);
+
+    return {
+      ...results,
+      duration: parseFloat(duration)
+    };
+  }
 }
 
 module.exports = new EmailService();

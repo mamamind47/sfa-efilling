@@ -1,6 +1,7 @@
 const prisma = require("../config/database");
 const emailService = require("./emailService");
 const notificationService = require("./notificationService");
+const { validateActivityLimit } = require("../utils/activityLimitValidator");
 const path = require("path");
 const axios = require("axios");
 const sharp = require("sharp");
@@ -543,25 +544,17 @@ async function submitSubmission(submissionData, files) {
     }
     // --- END DUPLICATE SUBMISSION CHECK ---
 
-    // เตรียมข้อมูลสำหรับการสร้าง submission
-    const dataToCreate = {
-      user_id: userId,
-      academic_year_id: academicYearId,
-      type,
-      status: "submitted",
-    };
-
+    // --- BEGIN ACTIVITY LIMIT VALIDATION ---
+    let hoursToValidate = 0;
     if (type === "Certificate") {
-      // Get certificate type to retrieve hours
+      // Get certificate type to retrieve hours for validation
       const certType = await prisma.certificate_types.findUnique({
         where: { certificate_type_id: certificateTypeId }
       });
       if (!certType) {
         throw new Error("ไม่พบประเภท Certificate ที่ระบุ");
       }
-      
-      dataToCreate.certificate_type_id = certificateTypeId;
-      dataToCreate.hours_requested = certType.hours;
+      hoursToValidate = certType.hours;
     } else {
       if (hours === undefined || hours === null) {
         throw new Error("กรุณาระบุจำนวนชั่วโมง");
@@ -570,7 +563,35 @@ async function submitSubmission(submissionData, files) {
       if (isNaN(hoursAsInt)) {
         throw new Error("จำนวนชั่วโมงไม่ถูกต้อง");
       }
-      dataToCreate.hours_requested = hoursAsInt;
+      hoursToValidate = hoursAsInt;
+    }
+
+    // Validate activity limits before creating submission
+    const limitValidation = await validateActivityLimit(userId, academicYearId, type, hoursToValidate);
+    if (!limitValidation.isValid) {
+      const error = new Error(`ไม่สามารถส่งได้: ${limitValidation.message}`);
+      error.code = "ACTIVITY_LIMIT_EXCEEDED";
+      error.details = {
+        limit: limitValidation.limit,
+        current: limitValidation.current,
+        requested: limitValidation.requested,
+        totalAfter: limitValidation.totalAfter
+      };
+      throw error;
+    }
+    // --- END ACTIVITY LIMIT VALIDATION ---
+
+    // เตรียมข้อมูลสำหรับการสร้าง submission
+    const dataToCreate = {
+      user_id: userId,
+      academic_year_id: academicYearId,
+      type,
+      status: "submitted",
+      hours_requested: hoursToValidate,
+    };
+
+    if (type === "Certificate") {
+      dataToCreate.certificate_type_id = certificateTypeId;
     }
 
     const submission = await prisma.submissions.create({

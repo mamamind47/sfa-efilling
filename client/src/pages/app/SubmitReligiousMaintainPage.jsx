@@ -9,6 +9,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import apiClient from "../../api/axiosConfig";
+import ActivityLimitChecker from "../../components/ActivityLimitChecker";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import toast from "react-hot-toast";
@@ -119,8 +120,16 @@ function SubmitReligiousMaintainPage() {
       setShowSuccess(true);
       setAlreadySubmitted(false);
       setAcceptedFiles([]);
-    } catch {
-      alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+    } catch (err) {
+      console.error("Error submitting:", err);
+      if (err.response?.data?.code === "ACTIVITY_LIMIT_EXCEEDED") {
+        const details = err.response.data.details;
+        toast.error(
+          `เกินลิมิตแล้ว: ปัจจุบัน ${details.current}/${details.limit} ชั่วโมง หากส่ง ${details.requested} ชั่วโมง จะเป็น ${details.totalAfter} ชั่วโมง`
+        );
+      } else {
+        alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+      }
     } finally {
       setUploading(false);
     }
@@ -280,6 +289,12 @@ function SubmitReligiousMaintainPage() {
           </p>
         )}
       </div>
+
+      <ActivityLimitChecker 
+        academicYearId={academic_year_id}
+        activityType="religious"
+        requestedHours={parseInt(hours) || 0}
+      />
 
       <div className="flex items-center space-x-2">
         <input

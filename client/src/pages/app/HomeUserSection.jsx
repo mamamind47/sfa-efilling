@@ -9,6 +9,8 @@ import {
   Building2,
   Contact2,
   CalendarClock,
+  Plus,
+  Calendar,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -56,6 +58,7 @@ function UserHomeSection() {
 
         const defaultYear = openYearName || uniqueYears[0] || "";
         setSelectedYear(defaultYear);
+        
         setUserInfo(userInfoRes.data);
       } catch (error) {
         console.error("Error loading initial data", error);
@@ -71,6 +74,7 @@ function UserHomeSection() {
           apiClient.get("/user/hours"),
           apiClient.get("/user/scholarship"),
         ]);
+
 
         const targetYear = hoursRes.data.find(
           (r) => r.year_name === selectedYear
@@ -172,6 +176,15 @@ function UserHomeSection() {
                 </span>
               </motion.button>
             )}
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              className="bg-[#4A90E2] hover:bg-[#357ABD] text-white px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 transform transition-transform duration-200"
+              onClick={() => navigate("/app/activities")}
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="font-semibold">สมัครเข้าร่วมกิจกรรม</span>
+            </motion.button>
 
             <motion.button
               whileHover={{ scale: 1.05 }}

@@ -19,6 +19,32 @@
 4. **File Management** - File upload and preview system
 
 ## Recent Updates
+### Projects System - Multi-Participant Activities (Latest)
+- **New Feature**: Group activity project management system
+- **Project Types**:
+  - ทำนุบำรุงศาสนสถาน (religious)
+  - พัฒนาโรงเรียน/ชุมชน (social_development)
+  - กิจกรรมภายในมหาวิทยาลัย (university_activity - Admin only)
+- **Key Features**:
+  - Multi-participant support with individual approval
+  - Activity limit validation per participant
+  - Province selection for religious/social projects
+  - Document upload with type categorization
+  - Student-created projects (pending approval)
+  - Admin-created projects (auto-approved)
+  - Selective participant approval by admin
+- **Database Tables**: projects, project_participants, project_files
+- **API Endpoints**: /api/projects/* (CRUD + participant management)
+
+### Cron Job Performance Optimization
+- **Batch Email Processing**: Implemented batch email sending with configurable batch size (default: 50)
+- **Database Query Optimization**: Reduced from ~10,000 queries to ~5 bulk queries for 2,000+ users
+- **Rate Limiting**: Added 2-second delays between email batches to prevent SMTP throttling
+- **Error Resilience**: Using Promise.allSettled() to ensure one failure doesn't block others
+- **Progress Logging**: Detailed console output showing batch progress, success/failure counts, duration
+- **Performance Metrics**: For 2,000 users: ~5-10 minutes (vs previous 1-3 hours)
+- **Memory Efficiency**: Bulk fetch with maps instead of individual queries per user
+
 ### Approval History Page Enhancements (Completed)
 - **Category Filtering**: Changed "ทั้งหมด (ยกเว้นเรียนออนไลน์)" to "ทั้งหมด" to include all submission types including Certificate
 - **Status Filtering**: Added dropdown for all/approved/rejected status filtering

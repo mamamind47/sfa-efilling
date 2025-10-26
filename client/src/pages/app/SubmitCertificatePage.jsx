@@ -6,6 +6,7 @@ import { Upload, Search, Eye, X, RotateCcw } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import ModalUploadConfirm from "../../components/ModalUploadConfirm";
+import ActivityLimitChecker from "../../components/ActivityLimitChecker";
 import exSET from "../../assets/SET.jpg";
 dayjs.locale("th");
 
@@ -24,6 +25,7 @@ function SubmitCertificatePage() {
   const [previewFiles, setPreviewFiles] = useState([]);
   const [academicPeriod, setAcademicPeriod] = useState(null);
   const [showSetModal, setShowSetModal] = useState(false);
+  const [activityLimit, setActivityLimit] = useState(null);
 
 
   const fetchSubmissions = async () => {
@@ -38,23 +40,30 @@ function SubmitCertificatePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [certRes, subRes] = await Promise.all([
+        const [certRes, subRes, limitRes] = await Promise.all([
           apiClient.get("/certificate"),
           apiClient.get("/submission"),
+          apiClient.get(`/activity-limits/user-status/${academic_year_id}`).catch(() => ({ data: [] }))
         ]);
 
         const activeTypes = certRes.data.filter((cert) => cert.is_active === 1);
         setCertificateTypes(activeTypes);
         setFilteredTypes(activeTypes);
         setSubmissions(subRes.data);
+        
+        // Find Certificate activity limit
+        const certificateLimit = limitRes.data.find(item => item.activity_type === 'Certificate');
+        setActivityLimit(certificateLimit);
       } catch (err) {
         console.error("โหลดข้อมูลล้มเหลว", err);
         setError("ไม่สามารถโหลดข้อมูลได้");
       }
     };
 
-    fetchData();
-  }, []);
+    if (academic_year_id) {
+      fetchData();
+    }
+  }, [academic_year_id]);
 
   useEffect(() => {
     const query = searchQuery.toLowerCase();
@@ -106,10 +115,19 @@ function SubmitCertificatePage() {
     setPreviewFiles([]);
     setStatusPopup(null); // ✅ ปิด popup สถานะเมื่ออัปโหลดเสร็จ
     await fetchSubmissions();
+    
+    // Refetch activity limit data
+    try {
+      const limitRes = await apiClient.get(`/activity-limits/user-status/${academic_year_id}`);
+      const certificateLimit = limitRes.data.find(item => item.activity_type === 'Certificate');
+      setActivityLimit(certificateLimit);
+    } catch (err) {
+      console.error("Error refreshing activity limit:", err);
+    }
   };
 
   const renderStatusStep = (sub) => {
-    const status = sub.status_logs?.[0]?.status || "submitted";
+    const status = sub.status || "submitted";
     const reason = sub.status_logs?.[0]?.reason || null;
 
     const stepClass = (step) => {
@@ -241,6 +259,13 @@ function SubmitCertificatePage() {
 
       {error && <div className="alert alert-error">{error}</div>}
 
+      {/* Activity Limit Checker */}
+      <ActivityLimitChecker 
+        academicYearId={academic_year_id}
+        activityType="Certificate"
+        requestedHours={0}
+      />
+
       <div className="bg-base-100 p-4 rounded-lg shadow border max-w-xl">
         <label className="block text-sm font-medium mb-2">ค้นหาใบรับรอง</label>
         <div className="relative">
@@ -280,11 +305,11 @@ function SubmitCertificatePage() {
                   s?.certificate_type_id &&
                   s.certificate_type_id === type.certificate_type_id &&
                   s.academic_year_id !== academic_year_id &&
-                  s.status_logs?.[0]?.status === "approved"
+                  s.status === "approved"
               );
               if (sameTypeApproved) return null;
 
-              const statusRaw = sub?.status_logs?.[0]?.status;
+              const statusRaw = sub?.status;
               const statusText =
                 statusRaw === "approved" ? (
                   <span className="text-green-500 font-medium">
@@ -298,24 +323,45 @@ function SubmitCertificatePage() {
                   "-"
                 );
 
+              // Check if this certificate exceeds remaining limit
+              const remainingHours = activityLimit ? activityLimit.remaining_hours : null;
+              const isOverLimit = activityLimit && remainingHours !== null && type.hours > remainingHours;
+              const cannotSubmit = isOverLimit && !sub;
+
               return (
-                <tr key={type.certificate_type_id}>
-                  <td>{type.certificate_code}</td>
-                  <td>{type.certificate_name}</td>
-                  <td>{type.category}</td>
-                  <td>{type.hours} ชั่วโมง</td>
+                <tr key={type.certificate_type_id} className={cannotSubmit ? 'opacity-60' : ''}>
+                  <td className={cannotSubmit ? 'text-gray-500' : ''}>{type.certificate_code}</td>
+                  <td className={cannotSubmit ? 'text-gray-500' : ''}>{type.certificate_name}</td>
+                  <td className={cannotSubmit ? 'text-gray-500' : ''}>{type.category}</td>
+                  <td className={cannotSubmit ? 'text-gray-500' : ''}>
+                    {type.hours} ชั่วโมง
+                    {cannotSubmit && (
+                      <div className="text-xs text-red-500 mt-1">
+                        เกินลิมิต (เหลือ {remainingHours} ชม.)
+                      </div>
+                    )}
+                  </td>
                   <td className="text-center align-middle">{statusText}</td>
                   <td className="text-center align-middle">
                     {!sub ? (
-                      <button
-                        className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white border-none"
-                        onClick={() => handleUpload(type.certificate_type_id)}
-                        disabled={
-                          uploadingId === type.certificate_type_id || loading
-                        }
-                      >
-                        <Upload size={16} /> อัปโหลด
-                      </button>
+                      cannotSubmit ? (
+                        <button
+                          className="btn btn-sm btn-disabled bg-gray-300 text-gray-500 border-none cursor-not-allowed"
+                          disabled
+                        >
+                          <Upload size={16} /> ไม่สามารถส่ง
+                        </button>
+                      ) : (
+                        <button
+                          className="btn btn-sm bg-orange-500 hover:bg-orange-600 text-white border-none"
+                          onClick={() => handleUpload(type.certificate_type_id)}
+                          disabled={
+                            uploadingId === type.certificate_type_id || loading
+                          }
+                        >
+                          <Upload size={16} /> อัปโหลด
+                        </button>
+                      )
                     ) : (
                       <button
                         onClick={() => setStatusPopup(sub)}

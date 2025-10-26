@@ -78,11 +78,19 @@ function ModalUploadConfirm({
       }
     } catch (err) {
       console.error("❌ Error uploading files:", err);
-      // พยายามแสดงข้อความ error จาก backend ถ้ามี
-      const errorMsg =
-        err.response?.data?.error ||
-        "เกิดข้อผิดพลาดในการอัปโหลด โปรดตรวจสอบการเชื่อมต่อ หรือไฟล์อีกครั้ง";
-      setError(errorMsg);
+      // จัดการ ACTIVITY_LIMIT_EXCEEDED error แยกต่างหาก
+      if (err.response?.data?.code === "ACTIVITY_LIMIT_EXCEEDED") {
+        const details = err.response.data.details;
+        setError(
+          `เกินลิมิตแล้ว: ปัจจุบัน ${details.current}/${details.limit} ชั่วโมง หากส่ง ${details.requested} ชั่วโมง จะเป็น ${details.totalAfter} ชั่วโมง`
+        );
+      } else {
+        // พยายามแสดงข้อความ error จาก backend ถ้ามี
+        const errorMsg =
+          err.response?.data?.error ||
+          "เกิดข้อผิดพลาดในการอัปโหลด โปรดตรวจสอบการเชื่อมต่อ หรือไฟล์อีกครั้ง";
+        setError(errorMsg);
+      }
     } finally {
       setIsUploading(false); // คืนค่า loading state เสมอ ไม่ว่าจะสำเร็จหรือล้มเหลว
     }

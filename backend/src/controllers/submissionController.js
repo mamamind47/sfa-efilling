@@ -29,6 +29,13 @@ exports.submitSubmission = async (req, res) => {
         existingSubmissionId: error.existingSubmissionId,
       });
     }
+    if (error.code === "ACTIVITY_LIMIT_EXCEEDED") {
+      return res.status(400).json({
+        error: error.message,
+        code: "ACTIVITY_LIMIT_EXCEEDED",
+        details: error.details,
+      });
+    }
     if (error.code === "P2002") {
       return res.status(409).json({ 
         error: "ข้อมูลบางอย่างที่ส่งมาซ้ำกับที่มีอยู่แล้วในระบบ" 

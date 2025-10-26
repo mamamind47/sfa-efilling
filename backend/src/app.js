@@ -18,6 +18,8 @@ const sseRoutes = require("./routes/sseRoutes");
 const emailRoutes = require("./routes/emailRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const postsRoutes = require("./routes/postsRoutes");
+const activityLimitsRoutes = require("./routes/activityLimitsRoutes");
+const projectRoutes = require("./routes/projectRoutes");
 const cronService = require("./services/cronService");
 
 
@@ -37,6 +39,7 @@ app.use(express.urlencoded({ extended: true }));
 // --- Public Routes (ไม่ต้องการ Login) ---
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postsRoutes);
+app.use("/api/activity-limits", activityLimitsRoutes);
 
 // Static file serving (must be before auth middleware)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -61,8 +64,10 @@ app.use("/api/user", userRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/email", emailRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/projects", projectRoutes);
 
 // Start cron jobs
 cronService.scheduleDeadlineWarnings();
+// cronService.scheduleNotificationCleanup(); // Disabled for now
 
 module.exports = app;

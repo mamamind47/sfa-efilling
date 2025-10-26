@@ -10,6 +10,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import apiClient from "../../api/axiosConfig";
+import ActivityLimitChecker from "../../components/ActivityLimitChecker";
 import dayjs from "dayjs";
 import "dayjs/locale/th";
 import toast from "react-hot-toast";
@@ -125,7 +126,15 @@ const onDrop = (files) => {
       setAlreadySubmitted(false);
       setAcceptedFiles([]);
     } catch (err) {
-      alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+      console.error("Error submitting:", err);
+      if (err.response?.data?.code === "ACTIVITY_LIMIT_EXCEEDED") {
+        const details = err.response.data.details;
+        toast.error(
+          `เกินลิมิตแล้ว: ปัจจุบัน ${details.current}/${details.limit} ชั่วโมง หากส่ง ${details.requested} ชั่วโมง จะเป็น ${details.totalAfter} ชั่วโมง`
+        );
+      } else {
+        alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+      }
     } finally {
       setUploading(false);
     }

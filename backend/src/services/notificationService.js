@@ -148,6 +148,35 @@ async function createHoursCompleteNotification(userId, totalHours) {
   });
 }
 
+async function createAnnouncementNotification(userId, title, message) {
+  return await createNotification({
+    userId,
+    type: 'ANNOUNCEMENT',
+    title,
+    message
+  });
+}
+
+// Bulk create announcement notifications for multiple users
+async function createBulkAnnouncementNotifications(userIds, title, message) {
+  try {
+    const result = await prisma.notifications.createMany({
+      data: userIds.map(userId => ({
+        user_id: userId,
+        type: 'ANNOUNCEMENT',
+        title: title,
+        message: message
+      })),
+      skipDuplicates: true
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error creating bulk announcement notifications:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   createNotification,
   getUserNotifications,
@@ -157,5 +186,7 @@ module.exports = {
   createApprovalNotification,
   createRejectionNotification,
   createDeadlineWarning,
-  createHoursCompleteNotification
+  createHoursCompleteNotification,
+  createAnnouncementNotification,
+  createBulkAnnouncementNotifications
 };
